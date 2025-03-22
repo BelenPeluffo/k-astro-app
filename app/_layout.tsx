@@ -1,39 +1,107 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { AppProvider } from "@/contexts/App.provider";
+import { initDatabase } from "@/database/database";
+import { Stack } from "expo-router";
+import { SQLiteDatabase, SQLiteProvider } from "expo-sqlite";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+// Función para resetear completamente la base de datos
+const resetAndInit = async (db: SQLiteDatabase) => {
+  try {
+    // Desactivar temporalmente las foreign keys para poder eliminar las tablas
+    await db.execAsync('PRAGMA foreign_keys = OFF;');
+    
+    // Eliminar todas las tablas existentes
+    await db.execAsync(`
+      DROP TABLE IF EXISTS idol;
+      DROP TABLE IF EXISTS "group";
+      DROP TABLE IF EXISTS company;
+      DROP TABLE IF EXISTS western_zodiac_sign;
+    `);
+    
+    // Reactivar foreign keys
+    await db.execAsync('PRAGMA foreign_keys = ON;');
+    
+    // Inicializar la base de datos desde cero
+    await initDatabase(db);
+    
+    console.log('Base de datos reiniciada correctamente');
+  } catch (error) {
+    console.error('Error al reiniciar la base de datos:', error);
+  }
+};
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <SQLiteProvider 
+      databaseName="k-astro-app.db" 
+      onInit={initDatabase} // Usar resetAndInit en lugar de initDatabase
+    >
+      <AppProvider>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
+        <Stack.Screen 
+          name="index" 
+          options={{ 
+            title: "K-Astro",
+            headerShown: true 
+          }} 
+        />
+        <Stack.Screen 
+          name="filters" 
+          options={{ 
+            title: "Filtros",
+            presentation: "modal" 
+          }} 
+        />
+        <Stack.Screen 
+          name="create" 
+          options={{ 
+            title: "Crear Nuevo",
+            presentation: "modal" 
+          }} 
+        />
+        <Stack.Screen 
+          name="create/idol" 
+          options={{ 
+            title: "Crear Idol" 
+          }} 
+        />
+        <Stack.Screen 
+          name="create/group" 
+          options={{ 
+            title: "Crear Grupo" 
+          }} 
+        />
+        <Stack.Screen 
+          name="create/company" 
+          options={{ 
+            title: "Crear Compañía" 
+          }} 
+        />
+        <Stack.Screen 
+          name="idol/[id]" 
+          options={{ 
+            title: "Detalles del Idol",
+          }} 
+        />
+        <Stack.Screen 
+          name="group/[id]" 
+          options={{ 
+            title: "Detalles del Grupo",
+          }} 
+        />
+        <Stack.Screen 
+          name="company/[id]" 
+          options={{ 
+            title: "Detalles de la Compañía",
+          }} 
+        />
+        <Stack.Screen 
+          name="edit/idol/[id]" 
+          options={{ 
+            title: "Editar Idol",
+          }} 
+        />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+      </AppProvider>
+    </SQLiteProvider>
   );
 }
