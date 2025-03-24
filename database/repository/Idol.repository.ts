@@ -27,7 +27,8 @@ export class IdolRepository extends BaseRepository<Idol> {
         ws_neptune.name as neptune_sign_name,
         ws_pluto.name as pluto_sign_name
       FROM ${this.tableName} i
-      LEFT JOIN "group" g ON i.group_id = g.id
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id
+      LEFT JOIN "group" g ON ig.group_id = g.id
       LEFT JOIN company c ON g.company_id = c.id
       LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
       LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
@@ -46,8 +47,11 @@ export class IdolRepository extends BaseRepository<Idol> {
   }
 
   async create(
-    name: string, 
-    groupId: number,
+    name: string,
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
+    }>,
     koreanName: string | null = null,
     signs?: {
       sun_sign_id?: number | null;
@@ -63,16 +67,44 @@ export class IdolRepository extends BaseRepository<Idol> {
       pluto_sign_id?: number | null;
     }
   ): Promise<void> {
-    const signColumns = signs ? Object.keys(signs).filter(key => signs[key] !== undefined) : [];
-    const columns = ['name', 'group_id', 'korean_name', ...signColumns];
-    const values = ['?', '?', '?', ...signColumns.map(() => '?')];
-    const params = [name, groupId, koreanName, ...signColumns.map(col => signs[col])];
+    await this.db.execAsync('BEGIN TRANSACTION');
+    
+    try {
+      // 1. Insertar el idol
+      const signColumns = signs ? Object.keys(signs).filter(key => signs[key] !== undefined) : [];
+      const columns = ['name', 'korean_name', ...signColumns];
+      const values = ['?', '?', ...signColumns.map(() => '?')];
+      const params = [name, koreanName, ...signColumns.map(col => signs[col])];
 
-    await this.execute(
-      `INSERT INTO ${this.tableName} (${columns.join(', ')}) 
-       VALUES (${values.join(', ')})`,
-      params
-    );
+      await this.execute(
+        `INSERT INTO ${this.tableName} (${columns.join(', ')}) 
+         VALUES (${values.join(', ')})`,
+        params
+      );
+
+      // Obtener el ID del último insert
+      const result = await this.db.getFirstAsync<{ id: number }>(
+        'SELECT last_insert_rowid() as id'
+      );
+      
+      const idolId = result!.id;
+
+      // 2. Insertar las relaciones con los grupos
+      for (const group of groups) {
+        await this.execute(
+          `INSERT INTO idol_group (idol_id, group_id, is_active) 
+           VALUES (?, ?, ?)`,
+          [idolId, group.group_id, group.is_active ? 1 : 0]
+        );
+      }
+
+      // Si todo salió bien, confirmar la transacción
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      // Si hubo algún error, deshacer todos los cambios
+      await this.db.execAsync('ROLLBACK');
+      throw error; // Re-lanzar el error para que se maneje en el nivel superior
+    }
   }
 
   async updateSigns(
@@ -107,7 +139,10 @@ export class IdolRepository extends BaseRepository<Idol> {
   async update(
     id: number,
     name: string,
-    groupId: number,
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
+    }>,
     koreanName: string | null,
     signs?: Partial<Pick<Idol,
       'sun_sign_id' |
@@ -123,8 +158,9 @@ export class IdolRepository extends BaseRepository<Idol> {
       'pluto_sign_id'
     >>
   ): Promise<void> {
-    const columns = ['name', 'group_id', 'korean_name'];
-    const values = [name, groupId, koreanName];
+    // 1. Actualizar la información básica del idol
+    const columns = ['name', 'korean_name'];
+    const values = [name, koreanName];
     
     if (signs) {
       Object.entries(signs).forEach(([key, value]) => {
@@ -140,6 +176,21 @@ export class IdolRepository extends BaseRepository<Idol> {
       `UPDATE ${this.tableName} SET ${setClause} WHERE id = ?`,
       [...values, id]
     );
+
+    // 2. Eliminar las relaciones anteriores con grupos
+    await this.execute(
+      `DELETE FROM idol_group WHERE idol_id = ?`,
+      [id]
+    );
+
+    // 3. Insertar las nuevas relaciones con grupos
+    for (const group of groups) {
+      await this.execute(
+        `INSERT INTO idol_group (idol_id, group_id, is_active) 
+         VALUES (?, ?, ?)`,
+        [id, group.group_id, group.is_active ? 1 : 0]
+      );
+    }
   }
 
   async checkTableStructure(): Promise<void> {

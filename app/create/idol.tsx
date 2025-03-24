@@ -21,7 +21,7 @@ export default function CreateIdolPage() {
   const database = useSQLiteContext();
   const { createIdol, groups } = useAppContext();
   const [name, setName] = useState("");
-  const [groupId, setGroupId] = useState<number | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
   const [selectedSigns, setSelectedSigns] = useState({
@@ -49,7 +49,7 @@ export default function CreateIdolPage() {
   }, [database]);
 
   const handleCreate = async () => {
-    if (!name || !groupId) {
+    if (!name || selectedGroups.length === 0) {
       Alert.alert("Error", "Por favor completa los campos requeridos");
       return;
     }
@@ -57,41 +57,24 @@ export default function CreateIdolPage() {
     try {
       setIsLoading(true);
       const repository = new IdolRepository(database);
-      const exists = await repository.exists(name, groupId);
+      
+      const groupsData = selectedGroups.map(groupId => ({
+        group_id: groupId,
+        is_active: true
+      }));
 
-      if (exists) {
-        Alert.alert(
-          "Idol existente",
-          "Ya existe un idol con este nombre en el mismo grupo",
-          [
-            {
-              text: "Volver al inicio",
-              onPress: () => router.replace("/"),
-              style: "cancel"
-            },
-            {
-              text: "Crear de todos modos",
-              onPress: async () => {
-                try {
-                  await createIdol(name, groupId, koreanName || null, selectedSigns);
-                  Alert.alert("Éxito", "Idol creado correctamente", [
-                    { text: "OK", onPress: () => router.replace("/") }
-                  ]);
-                } catch (error) {
-                  Alert.alert("Error", "No se pudo crear el idol");
-                }
-              },
-              style: "destructive"
-            }
-          ]
-        );
-      } else {
-        await createIdol(name, groupId, koreanName || null, selectedSigns);
-        Alert.alert("Éxito", "Idol creado correctamente", [
-          { text: "OK", onPress: () => router.replace("/") }
-        ]);
-      }
+      await createIdol(
+        name,
+        groupsData,
+        koreanName || null,
+        selectedSigns
+      );
+      
+      Alert.alert("Éxito", "Idol creado correctamente", [
+        { text: "OK", onPress: () => router.replace("/") }
+      ]);
     } catch (error) {
+      console.error('Error al crear idol:', error);
       Alert.alert("Error", "No se pudo crear el idol");
     } finally {
       setIsLoading(false);
@@ -130,17 +113,27 @@ export default function CreateIdolPage() {
         editable={!isLoading}
       />
 
-      <Picker
-        selectedValue={groupId}
-        onValueChange={(itemValue) => setGroupId(Number(itemValue))}
-        enabled={!isLoading}
-        style={styles.picker}
-      >
-        <Picker.Item label="Selecciona un grupo" value={null} />
-        {groups.map((group) => (
-          <Picker.Item key={group.id} label={group.name} value={group.id} />
-        ))}
-      </Picker>
+      <Text style={styles.sectionTitle}>Grupos</Text>
+      <Text style={styles.subtitle}>Selecciona los grupos</Text>
+
+      {groups.map((group) => (
+        <TouchableOpacity
+          key={group.id}
+          style={styles.groupSelector}
+          onPress={() => {
+            if (selectedGroups.includes(group.id)) {
+              setSelectedGroups(selectedGroups.filter((id) => id !== group.id));
+            } else {
+              setSelectedGroups([...selectedGroups, group.id]);
+            }
+          }}
+        >
+          <Text style={styles.groupLabel}>{group.name}</Text>
+          {selectedGroups.includes(group.id) && (
+            <Text style={styles.selectedLabel}>Seleccionado</Text>
+          )}
+        </TouchableOpacity>
+      ))}
 
       <Text style={styles.sectionTitle}>Carta Astral</Text>
       <Text style={styles.subtitle}>Todos los campos son opcionales</Text>
@@ -170,7 +163,7 @@ export default function CreateIdolPage() {
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleCreate}
-        disabled={isLoading || !name.trim() || !groupId}
+        disabled={isLoading || !name.trim() || selectedGroups.length === 0}
       >
         <Text style={styles.buttonText}>
           {isLoading ? "Creando..." : "Crear"}
@@ -229,6 +222,22 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  groupSelector: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  groupLabel: {
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  selectedLabel: {
+    fontSize: 12,
+    color: "#007AFF",
     fontWeight: "bold",
   },
 });

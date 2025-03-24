@@ -11,7 +11,10 @@ export interface AppContextType {
   groups: Group[];
   createIdol: (
     name: string, 
-    groupId: number,
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
+    }>,
     koreanName: string | null,
     signs?: Partial<Pick<Idol, 
       'sun_sign_id' | 
@@ -114,7 +117,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createIdol = async (
     name: string, 
-    groupId: number,
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
+    }>,
     koreanName: string | null,
     signs?: Partial<Pick<Idol, 
       'sun_sign_id' | 
@@ -130,7 +136,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       'pluto_sign_id'
     >>
   ) => {
-    await idolRepository.create(name, groupId, koreanName, signs);
+    await idolRepository.create(name, groups, koreanName, signs);
     await refreshData();
   };
 

@@ -29,7 +29,6 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       korean_name TEXT,
-      group_id INTEGER,
       sun_sign_id INTEGER,
       moon_sign_id INTEGER,
       rising_sign_id INTEGER,
@@ -41,7 +40,6 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       uranus_sign_id INTEGER,
       neptune_sign_id INTEGER,
       pluto_sign_id INTEGER,
-      FOREIGN KEY (group_id) REFERENCES "group"(id),
       FOREIGN KEY (sun_sign_id) REFERENCES western_zodiac_sign(id),
       FOREIGN KEY (moon_sign_id) REFERENCES western_zodiac_sign(id),
       FOREIGN KEY (rising_sign_id) REFERENCES western_zodiac_sign(id),
@@ -52,8 +50,16 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       FOREIGN KEY (saturn_sign_id) REFERENCES western_zodiac_sign(id),
       FOREIGN KEY (uranus_sign_id) REFERENCES western_zodiac_sign(id),
       FOREIGN KEY (neptune_sign_id) REFERENCES western_zodiac_sign(id),
-      FOREIGN KEY (pluto_sign_id) REFERENCES western_zodiac_sign(id),
-      UNIQUE(name, group_id)
+      FOREIGN KEY (pluto_sign_id) REFERENCES western_zodiac_sign(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS idol_group (
+      idol_id INTEGER,
+      group_id INTEGER,
+      is_active BOOLEAN DEFAULT 1,
+      PRIMARY KEY (idol_id, group_id),
+      FOREIGN KEY (idol_id) REFERENCES idol(id),
+      FOREIGN KEY (group_id) REFERENCES "group"(id)
     );
   `);
 
@@ -94,14 +100,22 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       FROM company_id;
     `);
 
-    // 3. Insertar idol
+    // 3. Insertar idol y su relación con el grupo
     await db.execAsync(`
-      WITH group_id AS (
+      -- Primero insertamos el idol
+      INSERT INTO idol (name) VALUES ('Soyeon');
+    `);
+
+    await db.execAsync(`
+      -- Luego creamos la relación con el grupo
+      WITH idol_id AS (
+        SELECT id FROM idol WHERE name = 'Soyeon'
+      ), group_id AS (
         SELECT id FROM "group" WHERE name = 'I-DLE'
       )
-      INSERT INTO idol (name, group_id)
-      SELECT 'Soyeon', id
-      FROM group_id;
+      INSERT INTO idol_group (idol_id, group_id, is_active)
+      SELECT i.id, g.id, 1
+      FROM idol_id i, group_id g;
     `);
   }
 

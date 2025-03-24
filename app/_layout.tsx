@@ -11,6 +11,7 @@ const resetAndInit = async (db: SQLiteDatabase) => {
     
     // Eliminar todas las tablas existentes
     await db.execAsync(`
+      DROP TABLE IF EXISTS idol_group;
       DROP TABLE IF EXISTS idol;
       DROP TABLE IF EXISTS "group";
       DROP TABLE IF EXISTS company;
@@ -33,7 +34,7 @@ export default function RootLayout() {
   return (
     <SQLiteProvider 
       databaseName="k-astro-app.db" 
-      onInit={initDatabase} // Usar resetAndInit en lugar de initDatabase
+      onInit={initDatabase}
     >
       <AppProvider>
       <Stack>
