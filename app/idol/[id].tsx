@@ -64,9 +64,9 @@ export default function IdolDetailsPage() {
   }
 
   const handleSignPress = (planet: string, sign: string) => {
-    // Navegar a la home con el filtro aplicado
-    router.push({
-      pathname: '/',
+    // Navegar a la pantalla de filtros con el filtro aplicado
+    router.replace({
+      pathname: '/filters',
       params: { [planet]: sign }
     });
   };

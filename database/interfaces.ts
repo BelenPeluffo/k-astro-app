@@ -41,9 +41,20 @@ export interface GroupWithCompany extends Group {
 }
 
 export interface IdolWithRelations extends Idol {
-  groups: Array<{
+  groups: {
     group_id: number;
     group_name: string;
     is_active: boolean;
-  }>;
+  }[];
+  sun_sign_name: string | null;
+  moon_sign_name: string | null;
+  rising_sign_name: string | null;
+  mercury_sign_name: string | null;
+  venus_sign_name: string | null;
+  mars_sign_name: string | null;
+  jupiter_sign_name: string | null;
+  saturn_sign_name: string | null;
+  uranus_sign_name: string | null;
+  neptune_sign_name: string | null;
+  pluto_sign_name: string | null;
 }

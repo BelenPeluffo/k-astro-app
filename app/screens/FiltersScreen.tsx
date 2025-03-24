@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppContext } from '@/contexts/App.provider';
 import { useSQLiteContext } from 'expo-sqlite';
 import { WesternZodiacSignRepository } from '@/database/repository/WesternZodiacSign.repository';
@@ -11,11 +11,13 @@ import { useFiltersState } from '@/hooks/useFiltersState';
 
 export const FiltersScreen = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const database = useSQLiteContext();
   const { filterIdols } = useAppContext();
-  const { applyFilters, filterLabels } = useFiltersState();
+  const { applyFilters } = useFiltersState();
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   const [filters, setFilters] = useState({
     idolName: '',
@@ -43,6 +45,41 @@ export const FiltersScreen = () => {
     loadZodiacSigns();
   }, [database]);
 
+  useEffect(() => {
+    if (initialLoad && params) {
+      const newFilters = { ...filters };
+      Object.keys(params).forEach(key => {
+        if (key in newFilters) {
+          newFilters[key] = params[key] as string;
+        }
+      });
+      setFilters(newFilters);
+      setInitialLoad(false);
+    }
+  }, [params, initialLoad]);
+
+  useEffect(() => {
+    if (!initialLoad) {
+      const applyInitialFilters = async () => {
+        setIsLoading(true);
+        try {
+          const cleanFilters = Object.fromEntries(
+            Object.entries(filters).filter(([_, value]) => value !== '')
+          );
+          applyFilters(cleanFilters);
+          await filterIdols(cleanFilters);
+          router.replace('/');
+        } catch (error) {
+          console.error('Error al aplicar filtros:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      applyInitialFilters();
+    }
+  }, [filters, initialLoad]);
+
   const planetLabels = {
     sunSign: "Sol",
     moonSign: "Luna",
@@ -60,8 +97,12 @@ export const FiltersScreen = () => {
   const handleApplyFilters = async () => {
     setIsLoading(true);
     try {
-      applyFilters(filters);
-      filterIdols(filters);
+      const cleanFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, value]) => value !== '')
+      );
+      applyFilters(cleanFilters);
+      await filterIdols(cleanFilters);
+      router.replace('/');
     } catch (error) {
       console.error('Error al aplicar filtros:', error);
     } finally {

@@ -165,7 +165,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         ws_moon.name as moon_sign_name,
         ws_rising.name as rising_sign_name,
         ws_mercury.name as mercury_sign_name,
-        ws_venus.name as venus_sign_name
+        ws_venus.name as venus_sign_name,
+        ws_mars.name as mars_sign_name,
+        ws_jupiter.name as jupiter_sign_name,
+        ws_saturn.name as saturn_sign_name,
+        ws_uranus.name as uranus_sign_name,
+        ws_neptune.name as neptune_sign_name,
+        ws_pluto.name as pluto_sign_name
       FROM idol i
     `;
 
@@ -191,6 +197,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       ${filters.risingSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
       ${filters.mercurySign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
       ${filters.venusSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
+      ${filters.marsSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
+      ${filters.jupiterSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
+      ${filters.saturnSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
+      ${filters.uranusSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
+      ${filters.neptuneSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
+      ${filters.plutoSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
     `;
 
     // Condiciones WHERE
