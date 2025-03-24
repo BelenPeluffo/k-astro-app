@@ -57,7 +57,11 @@ export const useFiltersState = () => {
       }), {});
   };
 
-  const clearFilters = () => {
+  const clearFilters = async () => {
+    // Primero actualizamos los datos
+    await refreshData();
+    
+    // Luego limpiamos la URL
     router.replace({
       pathname: '/',
       params: {}
@@ -86,13 +90,11 @@ export const useFiltersState = () => {
 
     if (paramsChanged) {
       previousParamsRef.current = currentParams;
-      if (Object.keys(currentParams).length === 0) {
-        refreshData();
-      } else {
+      if (Object.keys(currentParams).length > 0) {
         filterIdols(currentParams);
       }
     }
-  }, [params, filterIdols, refreshData]);
+  }, [params, filterIdols]);
 
   return {
     activeFilters: filterValidParams(params),

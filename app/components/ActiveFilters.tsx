@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useFiltersState, FilterParams } from '@/hooks/useFiltersState';
 
@@ -8,15 +8,32 @@ interface ActiveFiltersProps {
 
 export const ActiveFilters = ({ filters }: ActiveFiltersProps) => {
   const { clearFilters, filterLabels } = useFiltersState();
+  const [isClearing, setIsClearing] = useState(false);
 
   if (Object.keys(filters).length === 0) return null;
+
+  const handleClearFilters = async () => {
+    setIsClearing(true);
+    try {
+      await clearFilters();
+    } catch (error) {
+      console.error('Error al limpiar filtros:', error);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Filtros activos:</Text>
-        <TouchableOpacity onPress={clearFilters}>
-          <Text style={styles.clearButton}>Limpiar</Text>
+        <TouchableOpacity 
+          onPress={handleClearFilters}
+          disabled={isClearing}
+        >
+          <Text style={styles.clearButton}>
+            {isClearing ? 'Limpiando...' : 'Limpiar'}
+          </Text>
         </TouchableOpacity>
       </View>
       <ScrollView horizontal style={styles.filtersContainer}>
