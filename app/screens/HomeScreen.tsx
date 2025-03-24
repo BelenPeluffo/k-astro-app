@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AppContext } from '@/contexts/App.provider';
 import { ActiveFilters } from '@/app/components/ActiveFilters';
+import { filterLabels } from '@/app/components/ActiveFilters';
 
 export const HomeScreen = () => {
   const router = useRouter();
@@ -11,20 +12,27 @@ export const HomeScreen = () => {
   const initialRenderRef = useRef(true);
   const previousParamsRef = useRef({});
 
+  const filterValidParams = (params: Record<string, any>) => {
+    return Object.entries(params)
+      .filter(([key, value]) => 
+        filterLabels.hasOwnProperty(key) && 
+        value && 
+        value !== '' && 
+        value !== 'undefined'
+      )
+      .reduce((acc, [key, value]) => ({
+        ...acc,
+        [key]: value
+      }), {});
+  };
+
   useEffect(() => {
-    // Evitar la primera ejecución
     if (initialRenderRef.current) {
       initialRenderRef.current = false;
       return;
     }
 
-    // Convertir params a un objeto normal
-    const currentParams = Object.fromEntries(
-      Object.entries(params)
-        .filter(([_, value]) => value && value !== '' && value !== 'undefined')
-    );
-
-    // Comparar con los params anteriores
+    const currentParams = filterValidParams(params);
     const paramsChanged = JSON.stringify(currentParams) !== JSON.stringify(previousParamsRef.current);
 
     if (paramsChanged) {
@@ -45,11 +53,7 @@ export const HomeScreen = () => {
     </TouchableOpacity>
   );
 
-  // Filtrar params vacíos para ActiveFilters
-  const activeFilters = Object.fromEntries(
-    Object.entries(params)
-      .filter(([_, value]) => value && value !== '' && value !== 'undefined')
-  );
+  const activeFilters = filterValidParams(params);
 
   return (
     <View style={styles.container}>

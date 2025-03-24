@@ -6,7 +6,7 @@ interface ActiveFiltersProps {
   filters: Record<string, string>;
 }
 
-const filterLabels = {
+export const filterLabels = {
   idolName: "Nombre del Idol",
   groupName: "Grupo",
   companyName: "Compañía",
