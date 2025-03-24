@@ -7,6 +7,7 @@ import {
   Text,
   Alert,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -25,7 +26,10 @@ export default function EditIdolPage() {
   
   const [name, setName] = useState("");
   const [koreanName, setKoreanName] = useState("");
-  const [groupId, setGroupId] = useState<number | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<Array<{
+    group_id: number;
+    is_active: boolean;
+  }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
   const [selectedSigns, setSelectedSigns] = useState({
@@ -52,11 +56,14 @@ export default function EditIdolPage() {
 
         // Cargar datos del idol
         const idolRepository = new IdolRepository(database);
-        const idol = await idolRepository.findById(Number(id));
+        const idol = await idolRepository.findWithRelations(Number(id));
         if (idol) {
           setName(idol.name);
           setKoreanName(idol.korean_name || '');
-          setGroupId(idol.group_id);
+          setSelectedGroups(idol.groups.map(g => ({
+            group_id: g.group_id,
+            is_active: g.is_active
+          })));
           setSelectedSigns({
             sun_sign_id: idol.sun_sign_id,
             moon_sign_id: idol.moon_sign_id,
@@ -82,21 +89,17 @@ export default function EditIdolPage() {
   }, [id, database]);
 
   const handleUpdate = async () => {
-    if (!name.trim() || !groupId) return;
+    if (!name.trim() || selectedGroups.length === 0) {
+      Alert.alert("Error", "Por favor completa los campos requeridos");
+      return;
+    }
 
     setIsLoading(true);
     try {
-      console.log('Valores a actualizar:', {
-        id,
-        name,
-        groupId,
-        koreanName,
-        selectedSigns
-      });
       await updateIdol(
         Number(id),
         name,
-        groupId,
+        selectedGroups,
         koreanName.trim() || null,
         selectedSigns
       );
@@ -162,17 +165,42 @@ export default function EditIdolPage() {
         editable={!isLoading}
       />
 
-      <Picker
-        selectedValue={groupId}
-        onValueChange={(itemValue) => setGroupId(Number(itemValue))}
-        enabled={!isLoading}
-        style={styles.picker}
-      >
-        <Picker.Item label="Selecciona un grupo" value={null} />
-        {groups.map((group) => (
-          <Picker.Item key={group.id} label={group.name} value={group.id} />
-        ))}
-      </Picker>
+      <Text style={styles.sectionTitle}>Grupos</Text>
+      {groups.map((group) => (
+        <View key={group.id} style={styles.groupSelector}>
+          <TouchableOpacity
+            style={styles.groupItem}
+            onPress={() => {
+              const isSelected = selectedGroups.some(g => g.group_id === group.id);
+              if (isSelected) {
+                setSelectedGroups(selectedGroups.filter(g => g.group_id !== group.id));
+              } else {
+                setSelectedGroups([...selectedGroups, { group_id: group.id, is_active: true }]);
+              }
+            }}
+          >
+            <Text style={styles.groupLabel}>{group.name}</Text>
+            {selectedGroups.some(g => g.group_id === group.id) && (
+              <View style={styles.groupStatusContainer}>
+                <Text style={styles.selectedLabel}>Seleccionado</Text>
+                <Switch
+                  value={selectedGroups.find(g => g.group_id === group.id)?.is_active ?? true}
+                  onValueChange={(value) => {
+                    setSelectedGroups(selectedGroups.map(g => 
+                      g.group_id === group.id ? { ...g, is_active: value } : g
+                    ));
+                  }}
+                />
+                <Text style={styles.statusLabel}>
+                  {selectedGroups.find(g => g.group_id === group.id)?.is_active 
+                    ? 'Activo' 
+                    : 'Inactivo'}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      ))}
 
       <Text style={styles.sectionTitle}>Carta Astral</Text>
       <Text style={styles.subtitle}>Todos los campos son opcionales</Text>
@@ -202,7 +230,7 @@ export default function EditIdolPage() {
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleUpdate}
-        disabled={isLoading || !name.trim() || !groupId}
+        disabled={isLoading || !name.trim() || selectedGroups.length === 0}
       >
         <Text style={styles.buttonText}>
           {isLoading ? "Actualizando..." : "Actualizar"}
@@ -271,6 +299,31 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: '#666',
+  },
+  groupSelector: {
+    marginVertical: 8,
+  },
+  groupItem: {
+    padding: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  groupLabel: {
+    flex: 1,
+    fontSize: 16,
+  },
+  groupStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  selectedLabel: {
+    marginRight: 8,
+  },
+  statusLabel: {
+    marginLeft: 8,
+    fontSize: 14,
     color: '#666',
   },
 }); 

@@ -7,6 +7,7 @@ import { IdolRepository } from '@/database/repository/Idol.repository';
 import { IdolWithRelations } from '@/database/interfaces';
 import { useRouter } from 'expo-router';
 import { DetailActions } from '@/app/components/DetailActions';
+import React from 'react';
 
 const PLANETS = [
   { key: 'sun', label: 'Sol', signKey: 'sun_sign_name', filterKey: 'sunSign' },
@@ -103,17 +104,25 @@ export default function IdolDetailsPage() {
             <Text style={styles.koreanName}>{idol.korean_name}</Text>
           )}
           <View style={styles.subtitleContainer}>
-            <TouchableOpacity 
-              onPress={() => router.push(`/group/${idol.group_id}`)}
-            >
-              <Text style={[styles.subtitle, styles.link]}>{idol.group_name}</Text>
-            </TouchableOpacity>
-            <Text style={styles.subtitle}> • </Text>
-            <TouchableOpacity 
-              onPress={() => router.push(`/company/${idol.company_id}`)}
-            >
-              <Text style={[styles.subtitle, styles.link]}>{idol.company_name}</Text>
-            </TouchableOpacity>
+            {idol.groups && idol.groups.length > 0 ? (
+              idol.groups.map((group, index) => (
+                <React.Fragment key={group.group_id}>
+                  <TouchableOpacity 
+                    onPress={() => router.push(`/group/${group.group_id}`)}
+                  >
+                    <Text style={[styles.subtitle, styles.link]}>
+                      {group.group_name}
+                      {group.is_active ? '' : ' (Inactivo)'}
+                    </Text>
+                  </TouchableOpacity>
+                  {index < idol.groups.length - 1 && (
+                    <Text style={styles.subtitle}> • </Text>
+                  )}
+                </React.Fragment>
+              ))
+            ) : (
+              <Text style={styles.subtitle}>Sin grupos asignados</Text>
+            )}
           </View>
         </View>
 
