@@ -8,6 +8,7 @@ import { IdolWithRelations } from '@/database/interfaces';
 import { useRouter } from 'expo-router';
 import { DetailActions } from '@/app/components/DetailActions';
 import React from 'react';
+import { useFiltersState } from '@/hooks/useFiltersState';
 
 const PLANETS = [
   { key: 'sun', label: 'Sol', signKey: 'sun_sign_name', filterKey: 'sunSign' },
@@ -29,7 +30,8 @@ export default function IdolDetailsPage() {
   const [idol, setIdol] = useState<IdolWithRelations | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const { deleteIdol } = useAppContext();
+  const { deleteIdol, filterIdols } = useAppContext();
+  const { applyFilters } = useFiltersState();
 
   useEffect(() => {
     const loadIdol = async () => {
@@ -63,12 +65,17 @@ export default function IdolDetailsPage() {
     );
   }
 
-  const handleSignPress = (planet: string, sign: string) => {
-    // Navegar a la pantalla de filtros con el filtro aplicado
-    router.replace({
-      pathname: '/filters',
-      params: { [planet]: sign }
-    });
+  const handleSignPress = async (planet: string, sign: string) => {
+    try {
+      const filters = { [planet]: sign };
+      await filterIdols(filters);
+      router.replace({
+        pathname: '/',
+        params: filters
+      });
+    } catch (error) {
+      console.error('Error al aplicar filtros:', error);
+    }
   };
 
   const handleDelete = () => {

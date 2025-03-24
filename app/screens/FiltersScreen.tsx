@@ -100,9 +100,8 @@ export const FiltersScreen = () => {
       const cleanFilters = Object.fromEntries(
         Object.entries(filters).filter(([_, value]) => value !== '')
       );
-      applyFilters(cleanFilters);
       await filterIdols(cleanFilters);
-      router.replace('/');
+      applyFilters(cleanFilters);
     } catch (error) {
       console.error('Error al aplicar filtros:', error);
     } finally {

@@ -156,7 +156,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     // Log de los filtros recibidos
     console.log('Filtros aplicados:', filters);
     
-    // Comenzamos con la tabla base y los JOINs necesarios
     let query = `
       SELECT DISTINCT i.*, 
         g.name as group_name,
@@ -173,73 +172,47 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         ws_neptune.name as neptune_sign_name,
         ws_pluto.name as pluto_sign_name
       FROM idol i
-    `;
-
-    // Si hay filtro de compañía o grupo, necesitamos toda la cadena de relaciones
-    if (filters.companyName || filters.groupName) {
-      query += `
-        INNER JOIN idol_group ig ON i.id = ig.idol_id AND ig.is_active = 1
-        INNER JOIN \`group\` g ON ig.group_id = g.id
-        ${filters.companyName ? 'INNER JOIN company c ON g.company_id = c.id' : 'LEFT JOIN company c ON g.company_id = c.id'}
-      `;
-    } else {
-      query += `
-        LEFT JOIN idol_group ig ON i.id = ig.idol_id AND ig.is_active = 1
-        LEFT JOIN \`group\` g ON ig.group_id = g.id
-        LEFT JOIN company c ON g.company_id = c.id
-      `;
-    }
-
-    // JOINs para signos zodiacales
-    query += `
-      ${filters.sunSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
-      ${filters.moonSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
-      ${filters.risingSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
-      ${filters.mercurySign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
-      ${filters.venusSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
-      ${filters.marsSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
-      ${filters.jupiterSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
-      ${filters.saturnSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
-      ${filters.uranusSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
-      ${filters.neptuneSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
-      ${filters.plutoSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
-    `;
-
-    // Condiciones WHERE
-    query += `WHERE 1=1
-      ${filters.idolName ? 'AND i.name LIKE ?' : ''}
-      ${filters.groupName ? 'AND g.name LIKE ?' : ''}
-      ${filters.companyName ? 'AND c.name LIKE ?' : ''}
-      ${filters.sunSign ? 'AND ws_sun.name LIKE ?' : ''}
-      ${filters.moonSign ? 'AND ws_moon.name LIKE ?' : ''}
-      ${filters.risingSign ? 'AND ws_rising.name LIKE ?' : ''}
-      ${filters.mercurySign ? 'AND ws_mercury.name LIKE ?' : ''}
-      ${filters.venusSign ? 'AND ws_venus.name LIKE ?' : ''}
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id AND ig.is_active = 1
+      LEFT JOIN \`group\` g ON ig.group_id = g.id
+      LEFT JOIN company c ON g.company_id = c.id
+      LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
+      LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
+      LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
+      LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
+      LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
+      LEFT JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
+      LEFT JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
+      LEFT JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
+      LEFT JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
+      LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
+      LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
+      WHERE 1=1
     `;
 
     const params = [];
-    if (filters.idolName) params.push(`%${filters.idolName}%`);
-    if (filters.groupName) params.push(`%${filters.groupName}%`);
-    if (filters.companyName) params.push(`%${filters.companyName}%`);
-    if (filters.sunSign) params.push(`%${filters.sunSign}%`);
-    if (filters.moonSign) params.push(`%${filters.moonSign}%`);
-    if (filters.risingSign) params.push(`%${filters.risingSign}%`);
-    if (filters.mercurySign) params.push(`%${filters.mercurySign}%`);
-    if (filters.venusSign) params.push(`%${filters.venusSign}%`);
+
+    // Agregar condiciones WHERE para cada filtro
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        switch (key) {
+          case 'sunSign':
+            query += ' AND ws_sun.name = ?';
+            params.push(value);
+            break;
+          case 'moonSign':
+            query += ' AND ws_moon.name = ?';
+            params.push(value);
+            break;
+          // ... agregar casos similares para otros signos
+        }
+      }
+    });
 
     try {
-      // Log de la consulta y parámetros
-      console.log('Query SQL:', query);
-      console.log('Parámetros:', params);
-
       const results = await database.getAllAsync(query, params);
-      
-      // Log de los resultados
-      console.log('Resultados obtenidos:', results);
-      
-      // Procesar los resultados para incluir la información del grupo
       const processedResults = results.map(idol => ({
         ...idol,
+        id: idol.id, // Asegurarse de que el id esté presente
         group: idol.group_name ? { name: idol.group_name } : null
       }));
 

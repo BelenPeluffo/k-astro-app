@@ -20,6 +20,14 @@ export const HomeScreen = () => {
     </TouchableOpacity>
   );
 
+  const handleFiltersPress = () => {
+    // Forzar la navegación como modal
+    router.push({
+      pathname: '/filters',
+      // params: activeFilters // Pasar los filtros actuales
+    });
+  };
+
   return (
     <View style={styles.container}>
       {Object.keys(activeFilters).length > 0 && (
@@ -28,13 +36,13 @@ export const HomeScreen = () => {
       <FlatList
         data={idols}
         renderItem={renderIdolItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => `idol-${item.id}`}
         style={styles.list}
       />
       <View style={styles.buttonContainer}>
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => router.push('/filters')}
+          onPress={handleFiltersPress}
         >
           <Text style={styles.buttonText}>Filtros</Text>
         </TouchableOpacity>

@@ -49,7 +49,8 @@ export default function RootLayout() {
           name="filters" 
           options={{ 
             title: "Filtros",
-            presentation: "modal" 
+            presentation: "modal",
+            headerShown: true
           }} 
         />
         <Stack.Screen 

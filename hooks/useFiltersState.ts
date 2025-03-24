@@ -40,8 +40,6 @@ export const useFiltersState = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { filterIdols, refreshData } = useAppContext();
-  const initialRenderRef = useRef(true);
-  const previousParamsRef = useRef({});
 
   const filterValidParams = (params: Record<string, any>): FilterParams => {
     return Object.entries(params)
@@ -58,43 +56,21 @@ export const useFiltersState = () => {
   };
 
   const clearFilters = async () => {
-    // Primero actualizamos los datos
     await refreshData();
-    
-    // Luego limpiamos la URL
-    router.replace({
-      pathname: '/',
-      params: {}
-    });
+    router.replace('/');
   };
 
-  const applyFilters = (filters: FilterParams) => {
+  const applyFilters = async (filters: FilterParams) => {
     const validFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, value]) => value && value !== '')
     );
     
-    router.push({
+    await filterIdols(validFilters);
+    router.replace({
       pathname: '/',
       params: validFilters
     });
   };
-
-  useEffect(() => {
-    if (initialRenderRef.current) {
-      initialRenderRef.current = false;
-      return;
-    }
-
-    const currentParams = filterValidParams(params);
-    const paramsChanged = JSON.stringify(currentParams) !== JSON.stringify(previousParamsRef.current);
-
-    if (paramsChanged) {
-      previousParamsRef.current = currentParams;
-      if (Object.keys(currentParams).length > 0) {
-        filterIdols(currentParams);
-      }
-    }
-  }, [params, filterIdols]);
 
   return {
     activeFilters: filterValidParams(params),
