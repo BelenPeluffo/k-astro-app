@@ -1,36 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFiltersState, FilterParams } from '@/hooks/useFiltersState';
 
 interface ActiveFiltersProps {
-  filters: Record<string, string>;
+  filters: FilterParams;
 }
 
-export const filterLabels = {
-  idolName: "Nombre del Idol",
-  groupName: "Grupo",
-  companyName: "Compañía",
-  sunSign: "Sol",
-  moonSign: "Luna",
-  risingSign: "Ascendente",
-  mercurySign: "Mercurio",
-  venusSign: "Venus",
-  marsSign: "Marte",
-  jupiterSign: "Júpiter",
-  saturnSign: "Saturno",
-  uranusSign: "Urano",
-  neptuneSign: "Neptuno",
-  plutoSign: "Plutón",
-};
-
 export const ActiveFilters = ({ filters }: ActiveFiltersProps) => {
-  const router = useRouter();
+  const { clearFilters, filterLabels } = useFiltersState();
 
   if (Object.keys(filters).length === 0) return null;
-
-  const clearFilters = () => {
-    router.replace('/');
-  };
 
   return (
     <View style={styles.container}>

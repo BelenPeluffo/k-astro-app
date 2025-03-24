@@ -152,18 +152,49 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const filterIdols = async (filters: any) => {
     const repository = new IdolRepository(database);
+    
+    // Log de los filtros recibidos
+    console.log('Filtros aplicados:', filters);
+    
+    // Comenzamos con la tabla base y los JOINs necesarios
     let query = `
-      SELECT DISTINCT i.* 
+      SELECT DISTINCT i.*, 
+        g.name as group_name,
+        c.name as company_name,
+        ws_sun.name as sun_sign_name,
+        ws_moon.name as moon_sign_name,
+        ws_rising.name as rising_sign_name,
+        ws_mercury.name as mercury_sign_name,
+        ws_venus.name as venus_sign_name
       FROM idol i
-      LEFT JOIN idol_group ig ON i.id = ig.idol_id
-      LEFT JOIN \`group\` g ON ig.group_id = g.id
-      LEFT JOIN company c ON g.company_id = c.id
-      LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
-      LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
-      LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
-      LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
-      LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
-      WHERE 1=1
+    `;
+
+    // Si hay filtro de compañía o grupo, necesitamos toda la cadena de relaciones
+    if (filters.companyName || filters.groupName) {
+      query += `
+        INNER JOIN idol_group ig ON i.id = ig.idol_id AND ig.is_active = 1
+        INNER JOIN \`group\` g ON ig.group_id = g.id
+        ${filters.companyName ? 'INNER JOIN company c ON g.company_id = c.id' : 'LEFT JOIN company c ON g.company_id = c.id'}
+      `;
+    } else {
+      query += `
+        LEFT JOIN idol_group ig ON i.id = ig.idol_id AND ig.is_active = 1
+        LEFT JOIN \`group\` g ON ig.group_id = g.id
+        LEFT JOIN company c ON g.company_id = c.id
+      `;
+    }
+
+    // JOINs para signos zodiacales
+    query += `
+      ${filters.sunSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
+      ${filters.moonSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
+      ${filters.risingSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
+      ${filters.mercurySign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
+      ${filters.venusSign ? 'INNER' : 'LEFT'} JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
+    `;
+
+    // Condiciones WHERE
+    query += `WHERE 1=1
       ${filters.idolName ? 'AND i.name LIKE ?' : ''}
       ${filters.groupName ? 'AND g.name LIKE ?' : ''}
       ${filters.companyName ? 'AND c.name LIKE ?' : ''}
@@ -185,8 +216,22 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (filters.venusSign) params.push(`%${filters.venusSign}%`);
 
     try {
+      // Log de la consulta y parámetros
+      console.log('Query SQL:', query);
+      console.log('Parámetros:', params);
+
       const results = await database.getAllAsync(query, params);
-      setIdols(results);
+      
+      // Log de los resultados
+      console.log('Resultados obtenidos:', results);
+      
+      // Procesar los resultados para incluir la información del grupo
+      const processedResults = results.map(idol => ({
+        ...idol,
+        group: idol.group_name ? { name: idol.group_name } : null
+      }));
+
+      setIdols(processedResults);
     } catch (error) {
       console.error('Error en filterIdols:', error);
       throw error;

@@ -7,11 +7,13 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { WesternZodiacSignRepository } from '@/database/repository/WesternZodiacSign.repository';
 import { Picker } from '@react-native-picker/picker';
 import { WesternZodiacSign } from '@/database/interfaces';
+import { useFiltersState } from '@/hooks/useFiltersState';
 
 export const FiltersScreen = () => {
   const router = useRouter();
   const database = useSQLiteContext();
   const { filterIdols } = useAppContext();
+  const { applyFilters, filterLabels } = useFiltersState();
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -58,15 +60,8 @@ export const FiltersScreen = () => {
   const handleApplyFilters = async () => {
     setIsLoading(true);
     try {
-      const validFilters = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value && value !== '')
-      );
-      
-      // Usar push en lugar de replace
-      router.push({
-        pathname: '/',
-        params: validFilters
-      });
+      applyFilters(filters);
+      filterIdols(filters);
     } catch (error) {
       console.error('Error al aplicar filtros:', error);
     } finally {

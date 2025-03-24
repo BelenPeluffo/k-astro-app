@@ -1,47 +1,14 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { AppContext } from '@/contexts/App.provider';
+import { useRouter } from 'expo-router';
+import { useAppContext } from '@/contexts/App.provider';
 import { ActiveFilters } from '@/app/components/ActiveFilters';
-import { filterLabels } from '@/app/components/ActiveFilters';
+import { useFiltersState } from '@/hooks/useFiltersState';
 
 export const HomeScreen = () => {
   const router = useRouter();
-  const { idols, filterIdols } = useContext(AppContext);
-  const params = useLocalSearchParams();
-  const initialRenderRef = useRef(true);
-  const previousParamsRef = useRef({});
-
-  const filterValidParams = (params: Record<string, any>) => {
-    return Object.entries(params)
-      .filter(([key, value]) => 
-        filterLabels.hasOwnProperty(key) && 
-        value && 
-        value !== '' && 
-        value !== 'undefined'
-      )
-      .reduce((acc, [key, value]) => ({
-        ...acc,
-        [key]: value
-      }), {});
-  };
-
-  useEffect(() => {
-    if (initialRenderRef.current) {
-      initialRenderRef.current = false;
-      return;
-    }
-
-    const currentParams = filterValidParams(params);
-    const paramsChanged = JSON.stringify(currentParams) !== JSON.stringify(previousParamsRef.current);
-
-    if (paramsChanged) {
-      previousParamsRef.current = currentParams;
-      if (Object.keys(currentParams).length > 0) {
-        filterIdols(currentParams);
-      }
-    }
-  }, [params, filterIdols]);
+  const { idols } = useAppContext();
+  const { activeFilters } = useFiltersState();
 
   const renderIdolItem = ({ item }) => (
     <TouchableOpacity 
@@ -52,8 +19,6 @@ export const HomeScreen = () => {
       <Text style={styles.groupName}>{item.group?.name}</Text>
     </TouchableOpacity>
   );
-
-  const activeFilters = filterValidParams(params);
 
   return (
     <View style={styles.container}>
