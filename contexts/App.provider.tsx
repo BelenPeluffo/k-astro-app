@@ -150,38 +150,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await refreshData();
   };
 
-  const filterIdols = async (filters: {
-    idolName?: string;
-    groupName?: string;
-    companyName?: string;
-    sunSign?: string;
-    moonSign?: string;
-    risingSign?: string;
-    mercurySign?: string;
-    venusSign?: string;
-    marsSign?: string;
-    jupiterSign?: string;
-    saturnSign?: string;
-    uranusSign?: string;
-    neptuneSign?: string;
-    plutoSign?: string;
-  }) => {
-    const query = `
-      SELECT DISTINCT i.*, g.name as group_name, c.name as company_name 
+  const filterIdols = async (filters: any) => {
+    const repository = new IdolRepository(database);
+    let query = `
+      SELECT DISTINCT i.* 
       FROM idol i
-      LEFT JOIN "group" g ON i.group_id = g.id
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id
+      LEFT JOIN \`group\` g ON ig.group_id = g.id
       LEFT JOIN company c ON g.company_id = c.id
       LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
       LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
       LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
       LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
       LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
-      LEFT JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
-      LEFT JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
-      LEFT JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
-      LEFT JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
-      LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
-      LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
       WHERE 1=1
       ${filters.idolName ? 'AND i.name LIKE ?' : ''}
       ${filters.groupName ? 'AND g.name LIKE ?' : ''}
@@ -191,33 +172,25 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       ${filters.risingSign ? 'AND ws_rising.name LIKE ?' : ''}
       ${filters.mercurySign ? 'AND ws_mercury.name LIKE ?' : ''}
       ${filters.venusSign ? 'AND ws_venus.name LIKE ?' : ''}
-      ${filters.marsSign ? 'AND ws_mars.name LIKE ?' : ''}
-      ${filters.jupiterSign ? 'AND ws_jupiter.name LIKE ?' : ''}
-      ${filters.saturnSign ? 'AND ws_saturn.name LIKE ?' : ''}
-      ${filters.uranusSign ? 'AND ws_uranus.name LIKE ?' : ''}
-      ${filters.neptuneSign ? 'AND ws_neptune.name LIKE ?' : ''}
-      ${filters.plutoSign ? 'AND ws_pluto.name LIKE ?' : ''}
     `;
 
-    const params = [
-      ...(filters.idolName ? [`%${filters.idolName}%`] : []),
-      ...(filters.groupName ? [`%${filters.groupName}%`] : []),
-      ...(filters.companyName ? [`%${filters.companyName}%`] : []),
-      ...(filters.sunSign ? [`%${filters.sunSign}%`] : []),
-      ...(filters.moonSign ? [`%${filters.moonSign}%`] : []),
-      ...(filters.risingSign ? [`%${filters.risingSign}%`] : []),
-      ...(filters.mercurySign ? [`%${filters.mercurySign}%`] : []),
-      ...(filters.venusSign ? [`%${filters.venusSign}%`] : []),
-      ...(filters.marsSign ? [`%${filters.marsSign}%`] : []),
-      ...(filters.jupiterSign ? [`%${filters.jupiterSign}%`] : []),
-      ...(filters.saturnSign ? [`%${filters.saturnSign}%`] : []),
-      ...(filters.uranusSign ? [`%${filters.uranusSign}%`] : []),
-      ...(filters.neptuneSign ? [`%${filters.neptuneSign}%`] : []),
-      ...(filters.plutoSign ? [`%${filters.plutoSign}%`] : []),
-    ];
+    const params = [];
+    if (filters.idolName) params.push(`%${filters.idolName}%`);
+    if (filters.groupName) params.push(`%${filters.groupName}%`);
+    if (filters.companyName) params.push(`%${filters.companyName}%`);
+    if (filters.sunSign) params.push(`%${filters.sunSign}%`);
+    if (filters.moonSign) params.push(`%${filters.moonSign}%`);
+    if (filters.risingSign) params.push(`%${filters.risingSign}%`);
+    if (filters.mercurySign) params.push(`%${filters.mercurySign}%`);
+    if (filters.venusSign) params.push(`%${filters.venusSign}%`);
 
-    const filteredIdols = await database.getAllAsync(query, params);
-    setIdols(filteredIdols as Idol[]);
+    try {
+      const results = await database.getAllAsync(query, params);
+      setIdols(results);
+    } catch (error) {
+      console.error('Error en filterIdols:', error);
+      throw error;
+    }
   };
 
   const deleteIdol = async (id: number) => {
