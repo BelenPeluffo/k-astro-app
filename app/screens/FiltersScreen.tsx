@@ -58,8 +58,15 @@ export const FiltersScreen = () => {
   const handleApplyFilters = async () => {
     setIsLoading(true);
     try {
-      await filterIdols(filters);
-      router.back();
+      const validFilters = Object.fromEntries(
+        Object.entries(filters).filter(([_, value]) => value && value !== '')
+      );
+      
+      // Usar push en lugar de replace
+      router.push({
+        pathname: '/',
+        params: validFilters
+      });
     } catch (error) {
       console.error('Error al aplicar filtros:', error);
     } finally {
