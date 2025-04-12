@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState, useContext } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { Idol, Company, Group } from "@/database/interfaces";
+import { Idol, Company, Group, IdolWithRelations } from "@/database/interfaces";
 import { IdolRepository } from "@/database/repository/Idol.repository";
 import { CompanyRepository } from "@/database/repository/Company.repository";
 import { GroupRepository } from "@/database/repository/Group.repository";
@@ -58,21 +58,27 @@ export interface AppContextType {
   updateIdol: (
     id: number,
     name: string,
-    groupId: number,
+    groups: Array<{
+      group_id: number;
+      is_active: boolean;
+    }>,
     koreanName: string | null,
-    signs?: Partial<Pick<Idol,
-      'sun_sign_id' |
-      'moon_sign_id' |
-      'rising_sign_id' |
-      'mercury_sign_id' |
-      'venus_sign_id' |
-      'mars_sign_id' |
-      'jupiter_sign_id' |
-      'saturn_sign_id' |
-      'uranus_sign_id' |
-      'neptune_sign_id' |
-      'pluto_sign_id'
-    >>
+    signs?: Partial<
+      Pick<
+        Idol,
+        | "sun_sign_id"
+        | "moon_sign_id"
+        | "rising_sign_id"
+        | "mercury_sign_id"
+        | "venus_sign_id"
+        | "mars_sign_id"
+        | "jupiter_sign_id"
+        | "saturn_sign_id"
+        | "uranus_sign_id"
+        | "neptune_sign_id"
+        | "pluto_sign_id"
+      >
+    >
   ) => Promise<void>;
 }
 
@@ -266,7 +272,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const updateIdol = async (
     id: number,
     name: string,
-    groupId: number,
+    groups: Array<{
+      group_id: number;
+      is_active: boolean;
+    }>,
     koreanName: string | null,
     signs?: Partial<
       Pick<
@@ -285,7 +294,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       >
     >
   ) => {
-    await idolRepository.update(id, name, groupId, koreanName, signs);
+    await idolRepository.update(id, name, groups, koreanName, signs);
     await refreshData();
   };
 
