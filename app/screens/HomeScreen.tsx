@@ -10,15 +10,16 @@ import { useRouter } from "expo-router";
 import { useAppContext } from "@/contexts/App.provider";
 import { ActiveFilters } from "@/app/components/ActiveFilters";
 import { useFiltersState } from "@/hooks/useFiltersState";
+import { IdolWithRelations } from "@/database/interfaces";
 
 export const HomeScreen = () => {
   const router = useRouter();
   const { idols } = useAppContext();
   const { activeFilters } = useFiltersState();
 
-  const renderIdolItem = ({ item }) => {
-    const activeGroup = item.groups?.find(g => g.is_active);
-    
+  const renderIdolItem = ({ item }: { item: IdolWithRelations }) => {
+    const activeGroup = item.groups?.find((g) => g.is_active);
+
     return (
       <TouchableOpacity
         style={styles.idolCard}
