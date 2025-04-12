@@ -6,29 +6,32 @@ import { CompanyRepository } from "@/database/repository/Company.repository";
 import { GroupRepository } from "@/database/repository/Group.repository";
 
 export interface AppContextType {
-  idols: Idol[];
+  idols: IdolWithRelations[];
   companies: Company[];
   groups: Group[];
   createIdol: (
-    name: string, 
+    name: string,
     groups: Array<{
-      group_id: number,
-      is_active: boolean
+      group_id: number;
+      is_active: boolean;
     }>,
     koreanName: string | null,
-    signs?: Partial<Pick<Idol, 
-      'sun_sign_id' | 
-      'moon_sign_id' | 
-      'rising_sign_id' | 
-      'mercury_sign_id' |
-      'venus_sign_id' |
-      'mars_sign_id' |
-      'jupiter_sign_id' |
-      'saturn_sign_id' |
-      'uranus_sign_id' |
-      'neptune_sign_id' |
-      'pluto_sign_id'
-    >>
+    signs?: Partial<
+      Pick<
+        Idol,
+        | "sun_sign_id"
+        | "moon_sign_id"
+        | "rising_sign_id"
+        | "mercury_sign_id"
+        | "venus_sign_id"
+        | "mars_sign_id"
+        | "jupiter_sign_id"
+        | "saturn_sign_id"
+        | "uranus_sign_id"
+        | "neptune_sign_id"
+        | "pluto_sign_id"
+      >
+    >
   ) => Promise<void>;
   createCompany: (name: string) => Promise<void>;
   createGroup: (name: string, companyId: number) => Promise<void>;
@@ -96,19 +99,29 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const companyRepository = new CompanyRepository(database);
   const groupRepository = new GroupRepository(database);
 
-  const [idols, setIdols] = useState<Idol[]>([]);
+  const [idols, setIdols] = useState<IdolWithRelations[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
 
   const refreshData = async () => {
-    const [newIdols, newCompanies, newGroups] = await Promise.all([
-      idolRepository.findAll(),
-      companyRepository.findAll(),
-      groupRepository.findAll(),
-    ]);
-    setIdols(newIdols);
-    setCompanies(newCompanies);
-    setGroups(newGroups);
+    try {
+      const [newIdols, newCompanies, newGroups] = await Promise.all([
+        Promise.all(
+          (
+            await idolRepository.findAll()
+          ).map((idol) => idolRepository.findWithRelations(idol.id))
+        ),
+        companyRepository.findAll(),
+        groupRepository.findAll(),
+      ]);
+      setIdols(
+        newIdols.filter((idol): idol is IdolWithRelations => idol !== null)
+      );
+      setCompanies(newCompanies);
+      setGroups(newGroups);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    }
   };
 
   useEffect(() => {
@@ -116,25 +129,28 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [database]);
 
   const createIdol = async (
-    name: string, 
+    name: string,
     groups: Array<{
-      group_id: number,
-      is_active: boolean
+      group_id: number;
+      is_active: boolean;
     }>,
     koreanName: string | null,
-    signs?: Partial<Pick<Idol, 
-      'sun_sign_id' | 
-      'moon_sign_id' | 
-      'rising_sign_id' | 
-      'mercury_sign_id' |
-      'venus_sign_id' |
-      'mars_sign_id' |
-      'jupiter_sign_id' |
-      'saturn_sign_id' |
-      'uranus_sign_id' |
-      'neptune_sign_id' |
-      'pluto_sign_id'
-    >>
+    signs?: Partial<
+      Pick<
+        Idol,
+        | "sun_sign_id"
+        | "moon_sign_id"
+        | "rising_sign_id"
+        | "mercury_sign_id"
+        | "venus_sign_id"
+        | "mars_sign_id"
+        | "jupiter_sign_id"
+        | "saturn_sign_id"
+        | "uranus_sign_id"
+        | "neptune_sign_id"
+        | "pluto_sign_id"
+      >
+    >
   ) => {
     await idolRepository.create(name, groups, koreanName, signs);
     await refreshData();
@@ -227,7 +243,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
       setIdols(processedResults);
     } catch (error) {
-      console.error('Error en filterIdols:', error);
+      console.error("Error en filterIdols:", error);
       throw error;
     }
   };
@@ -252,32 +268,35 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     name: string,
     groupId: number,
     koreanName: string | null,
-    signs?: Partial<Pick<Idol,
-      'sun_sign_id' |
-      'moon_sign_id' |
-      'rising_sign_id' |
-      'mercury_sign_id' |
-      'venus_sign_id' |
-      'mars_sign_id' |
-      'jupiter_sign_id' |
-      'saturn_sign_id' |
-      'uranus_sign_id' |
-      'neptune_sign_id' |
-      'pluto_sign_id'
-    >>
+    signs?: Partial<
+      Pick<
+        Idol,
+        | "sun_sign_id"
+        | "moon_sign_id"
+        | "rising_sign_id"
+        | "mercury_sign_id"
+        | "venus_sign_id"
+        | "mars_sign_id"
+        | "jupiter_sign_id"
+        | "saturn_sign_id"
+        | "uranus_sign_id"
+        | "neptune_sign_id"
+        | "pluto_sign_id"
+      >
+    >
   ) => {
     await idolRepository.update(id, name, groupId, koreanName, signs);
     await refreshData();
   };
 
   return (
-    <AppContext.Provider 
-      value={{ 
-        idols, 
-        companies, 
-        groups, 
-        createIdol, 
-        createCompany, 
+    <AppContext.Provider
+      value={{
+        idols,
+        companies,
+        groups,
+        createIdol,
+        createCompany,
         createGroup,
         refreshData,
         filterIdols,
