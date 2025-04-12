@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   Alert,
+  Modal,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
@@ -41,6 +42,8 @@ export default function CreateIdolPage() {
     pluto_sign_id: null,
   });
   const [koreanName, setKoreanName] = useState("");
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [existingIdols, setExistingIdols] = useState<any[]>([]);
 
   useEffect(() => {
     const loadZodiacSigns = async () => {
@@ -62,41 +65,11 @@ export default function CreateIdolPage() {
       const repository = new IdolRepository(database);
       
       // Buscar idols con el mismo nombre
-      const existingIdols = await repository.findByName(name);
+      const foundIdols = await repository.findByName(name);
       
-      if (existingIdols.length > 0) {
-        // Mostrar alerta con las coincidencias
-        Alert.alert(
-          "¡Atención!",
-          `Ya existen ${existingIdols.length} idols con nombres similares. ¿Deseas ver los detalles de alguno de ellos?`,
-          [
-            ...existingIdols.map(idol => ({
-              text: `${idol.name}${idol.korean_name ? ` (${idol.korean_name})` : ''} - ${idol.groups.map(g => g.group_name).join(', ')}`,
-              onPress: () => {
-                router.push(`/idol/${idol.id}`);
-              }
-            })),
-            {
-              text: "Crear de todos modos",
-              onPress: async () => {
-                await createIdol(
-                  name,
-                  selectedGroups.length > 0 ? selectedGroups : undefined,
-                  koreanName || null,
-                  selectedSigns
-                );
-                Alert.alert("Éxito", "Idol creado correctamente", [
-                  { text: "OK", onPress: () => router.replace("/") }
-                ]);
-              },
-              style: "default"
-            },
-            {
-              text: "Cancelar",
-              style: "cancel"
-            }
-          ]
-        );
+      if (foundIdols.length > 0) {
+        setExistingIdols(foundIdols);
+        setShowDuplicateModal(true);
         return;
       }
 
@@ -116,6 +89,24 @@ export default function CreateIdolPage() {
       Alert.alert("Error", "No se pudo crear el idol");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateAnyway = async () => {
+    try {
+      await createIdol(
+        name,
+        selectedGroups.length > 0 ? selectedGroups : undefined,
+        koreanName || null,
+        selectedSigns
+      );
+      setShowDuplicateModal(false);
+      Alert.alert("Éxito", "Idol creado correctamente", [
+        { text: "OK", onPress: () => router.replace("/") }
+      ]);
+    } catch (error) {
+      console.error('Error al crear idol:', error);
+      Alert.alert("Error", "No se pudo crear el idol");
     }
   };
 
@@ -210,6 +201,57 @@ export default function CreateIdolPage() {
           {isLoading ? "Creando..." : "Crear"}
         </Text>
       </TouchableOpacity>
+
+      <Modal
+        visible={showDuplicateModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDuplicateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>¡Atención!</Text>
+            <Text style={styles.modalSubtitle}>
+              Ya existen {existingIdols.length} idols con nombres similares:
+            </Text>
+            
+            <ScrollView style={styles.modalList}>
+              {existingIdols.map((idol) => (
+                <TouchableOpacity
+                  key={idol.id}
+                  style={styles.modalListItem}
+                  onPress={() => {
+                    setShowDuplicateModal(false);
+                    router.push(`/idol/${idol.id}`);
+                  }}
+                >
+                  <Text style={styles.modalListItemText}>
+                    {idol.name}
+                    {idol.korean_name ? ` (${idol.korean_name})` : ''}
+                    {' - '}
+                    {idol.groups.map((g: { group_name: string }) => g.group_name).join(', ')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowDuplicateModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCreate]}
+                onPress={handleCreateAnyway}
+              >
+                <Text style={styles.modalButtonText}>Crear de todos modos</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -280,5 +322,62 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#007AFF",
     fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalList: {
+    maxHeight: 200,
+    marginBottom: 15,
+  },
+  modalListItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalListItemText: {
+    fontSize: 14,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  modalButtonCancel: {
+    backgroundColor: '#ccc',
+  },
+  modalButtonCreate: {
+    backgroundColor: '#007AFF',
+  },
+  modalButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
