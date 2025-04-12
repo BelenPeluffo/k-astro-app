@@ -220,7 +220,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
       LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
       WHERE 1=1
-      GROUP BY i.id
     `;
 
     const params: (string | number)[] = [];
@@ -230,17 +229,54 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       if (value) {
         switch (key) {
           case "sunSign":
-            query += " AND ws_sun.name = ?";
+            query += " AND i.sun_sign_id IS NOT NULL AND ws_sun.name = ?";
             params.push(value);
             break;
           case "moonSign":
-            query += " AND ws_moon.name = ?";
+            query += " AND i.moon_sign_id IS NOT NULL AND ws_moon.name = ?";
             params.push(value);
             break;
-          // ... agregar casos similares para otros signos
+          case "risingSign":
+            query += " AND i.rising_sign_id IS NOT NULL AND ws_rising.name = ?";
+            params.push(value);
+            break;
+          case "mercurySign":
+            query += " AND i.mercury_sign_id IS NOT NULL AND ws_mercury.name = ?";
+            params.push(value);
+            break;
+          case "venusSign":
+            query += " AND i.venus_sign_id IS NOT NULL AND ws_venus.name = ?";
+            params.push(value);
+            break;
+          case "marsSign":
+            query += " AND i.mars_sign_id IS NOT NULL AND ws_mars.name = ?";
+            params.push(value);
+            break;
+          case "jupiterSign":
+            query += " AND i.jupiter_sign_id IS NOT NULL AND ws_jupiter.name = ?";
+            params.push(value);
+            break;
+          case "saturnSign":
+            query += " AND i.saturn_sign_id IS NOT NULL AND ws_saturn.name = ?";
+            params.push(value);
+            break;
+          case "uranusSign":
+            query += " AND i.uranus_sign_id IS NOT NULL AND ws_uranus.name = ?";
+            params.push(value);
+            break;
+          case "neptuneSign":
+            query += " AND i.neptune_sign_id IS NOT NULL AND ws_neptune.name = ?";
+            params.push(value);
+            break;
+          case "plutoSign":
+            query += " AND i.pluto_sign_id IS NOT NULL AND ws_pluto.name = ?";
+            params.push(value);
+            break;
         }
       }
     });
+
+    query += " GROUP BY i.id";
 
     try {
       const results = await database.getAllAsync<{
