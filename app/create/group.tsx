@@ -1,17 +1,18 @@
-import { View, TextInput, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, ScrollView, TouchableOpacity, Text, Alert } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/App.provider';
 import { GroupRepository } from '@/database/repository/Group.repository';
 import { useSQLiteContext } from 'expo-sqlite';
+import { CompanyRepository } from '@/database/repository/Company.repository';
 
 export default function CreateGroupPage() {
   const router = useRouter();
   const database = useSQLiteContext();
   const { createGroup, companies } = useAppContext();
   const [name, setName] = useState('');
-  const [companyId, setCompanyId] = useState<number | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
@@ -23,41 +24,49 @@ export default function CreateGroupPage() {
     try {
       setIsLoading(true);
       const repository = new GroupRepository(database);
-      const exists = await repository.exists(name, companyId || 0);
-
-      if (exists) {
+      
+      // Buscar grupos con el mismo nombre
+      const existingGroups = await repository.findByName(name);
+      
+      if (existingGroups.length > 0) {
+        // Mostrar alerta con las coincidencias
         Alert.alert(
-          "Grupo existente",
-          "Ya existe un grupo con este nombre en la misma compañía",
+          "¡Atención!",
+          `Ya existen ${existingGroups.length} grupos con nombres similares. ¿Deseas ver los detalles de alguno de ellos?`,
           [
-            {
-              text: "Volver al inicio",
-              onPress: () => router.replace("/"),
-              style: "cancel"
-            },
+            ...existingGroups.map(group => ({
+              text: `${group.name}${group.company_name ? ` - ${group.company_name}` : ''} (${group.idols.length} idols)`,
+              onPress: () => {
+                router.push(`/group/${group.id}`);
+              }
+            })),
             {
               text: "Crear de todos modos",
               onPress: async () => {
-                try {
-                  await createGroup(name, companyId || undefined);
-                  Alert.alert("Éxito", "Grupo creado correctamente", [
-                    { text: "OK", onPress: () => router.replace("/") }
-                  ]);
-                } catch (error) {
-                  Alert.alert("Error", "No se pudo crear el grupo");
-                }
+                await createGroup(name, selectedCompany || undefined);
+                Alert.alert("Éxito", "Grupo creado correctamente", [
+                  { text: "OK", onPress: () => router.replace("/") }
+                ]);
               },
-              style: "destructive"
+              style: "default"
+            },
+            {
+              text: "Cancelar",
+              style: "cancel"
             }
           ]
         );
-      } else {
-        await createGroup(name, companyId || undefined);
-        Alert.alert("Éxito", "Grupo creado correctamente", [
-          { text: "OK", onPress: () => router.replace("/") }
-        ]);
+        return;
       }
+
+      // Si no hay coincidencias, crear el grupo
+      await createGroup(name, selectedCompany || undefined);
+      
+      Alert.alert("Éxito", "Grupo creado correctamente", [
+        { text: "OK", onPress: () => router.replace("/") }
+      ]);
     } catch (error) {
+      console.error('Error al crear grupo:', error);
       Alert.alert("Error", "No se pudo crear el grupo");
     } finally {
       setIsLoading(false);
@@ -75,8 +84,8 @@ export default function CreateGroupPage() {
       />
       
       <Picker
-        selectedValue={companyId}
-        onValueChange={(itemValue) => setCompanyId(Number(itemValue))}
+        selectedValue={selectedCompany}
+        onValueChange={(itemValue) => setSelectedCompany(Number(itemValue))}
         enabled={!isLoading}
       >
         <Picker.Item label="Selecciona una compañía" value={null} />
