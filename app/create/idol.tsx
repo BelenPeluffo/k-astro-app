@@ -61,6 +61,46 @@ export default function CreateIdolPage() {
       setIsLoading(true);
       const repository = new IdolRepository(database);
       
+      // Buscar idols con el mismo nombre
+      const existingIdols = await repository.findByName(name);
+      
+      if (existingIdols.length > 0) {
+        // Mostrar alerta con las coincidencias
+        Alert.alert(
+          "¡Atención!",
+          `Ya existen ${existingIdols.length} idols con nombres similares. ¿Deseas ver los detalles de alguno de ellos?`,
+          [
+            ...existingIdols.map(idol => ({
+              text: `${idol.name}${idol.korean_name ? ` (${idol.korean_name})` : ''} - ${idol.groups.map(g => g.group_name).join(', ')}`,
+              onPress: () => {
+                router.push(`/idol/${idol.id}`);
+              }
+            })),
+            {
+              text: "Crear de todos modos",
+              onPress: async () => {
+                await createIdol(
+                  name,
+                  selectedGroups.length > 0 ? selectedGroups : undefined,
+                  koreanName || null,
+                  selectedSigns
+                );
+                Alert.alert("Éxito", "Idol creado correctamente", [
+                  { text: "OK", onPress: () => router.replace("/") }
+                ]);
+              },
+              style: "default"
+            },
+            {
+              text: "Cancelar",
+              style: "cancel"
+            }
+          ]
+        );
+        return;
+      }
+
+      // Si no hay coincidencias, crear el idol
       await createIdol(
         name,
         selectedGroups.length > 0 ? selectedGroups : undefined,

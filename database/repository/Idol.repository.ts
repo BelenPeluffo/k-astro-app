@@ -229,4 +229,58 @@ export class IdolRepository extends BaseRepository<Idol> {
     );
     return result?.count > 0;
   }
+
+  async findByName(name: string): Promise<IdolWithRelations[]> {
+    const results = await this.db.getAllAsync<IdolWithRelations>(`
+      SELECT 
+        i.*,
+        GROUP_CONCAT(DISTINCT g.name) as group_names,
+        GROUP_CONCAT(DISTINCT g.id) as group_ids,
+        GROUP_CONCAT(DISTINCT ig.is_active) as group_actives,
+        ws_sun.name as sun_sign_name,
+        ws_moon.name as moon_sign_name,
+        ws_rising.name as rising_sign_name,
+        ws_mercury.name as mercury_sign_name,
+        ws_venus.name as venus_sign_name,
+        ws_mars.name as mars_sign_name,
+        ws_jupiter.name as jupiter_sign_name,
+        ws_saturn.name as saturn_sign_name,
+        ws_uranus.name as uranus_sign_name,
+        ws_neptune.name as neptune_sign_name,
+        ws_pluto.name as pluto_sign_name
+      FROM idol i
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id
+      LEFT JOIN "group" g ON ig.group_id = g.id
+      LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
+      LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
+      LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
+      LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
+      LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
+      LEFT JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
+      LEFT JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
+      LEFT JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
+      LEFT JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
+      LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
+      LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
+      WHERE i.name LIKE ?
+      GROUP BY i.id
+    `, [`%${name}%`]);
+
+    return results.map(result => {
+      const groupIds = result.group_ids ? result.group_ids.split(',').map(Number) : [];
+      const groupNames = result.group_names ? result.group_names.split(',') : [];
+      const groupActives = result.group_actives ? result.group_actives.split(',').map(n => n === '1') : [];
+
+      const groups = groupIds.map((groupId, index) => ({
+        group_id: groupId,
+        group_name: groupNames[index],
+        is_active: groupActives[index],
+      }));
+
+      return {
+        ...result,
+        groups,
+      } as IdolWithRelations;
+    });
+  }
 }
