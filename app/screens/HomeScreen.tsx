@@ -1,9 +1,15 @@
-import React from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAppContext } from '@/contexts/App.provider';
-import { ActiveFilters } from '@/app/components/ActiveFilters';
-import { useFiltersState } from '@/hooks/useFiltersState';
+import React from "react";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useAppContext } from "@/contexts/App.provider";
+import { ActiveFilters } from "@/app/components/ActiveFilters";
+import { useFiltersState } from "@/hooks/useFiltersState";
 
 export const HomeScreen = () => {
   const router = useRouter();
@@ -14,13 +20,13 @@ export const HomeScreen = () => {
     const activeGroup = item.groups?.find(g => g.is_active);
     
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.idolCard}
         onPress={() => router.push(`/idol/${item.id}`)}
       >
         <Text style={styles.idolName}>{item.name}</Text>
         <Text style={styles.groupName}>
-          {activeGroup ? activeGroup.group_name : 'Sin grupo activo'}
+          {activeGroup ? activeGroup.group_name : "Sin grupo activo"}
         </Text>
       </TouchableOpacity>
     );
@@ -29,7 +35,7 @@ export const HomeScreen = () => {
   const handleFiltersPress = () => {
     // Forzar la navegación como modal
     router.push({
-      pathname: '/filters',
+      pathname: "/filters",
       // params: activeFilters // Pasar los filtros actuales
     });
   };
@@ -46,16 +52,13 @@ export const HomeScreen = () => {
         style={styles.list}
       />
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={handleFiltersPress}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleFiltersPress}>
           <Text style={styles.buttonText}>Filtros</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/create')}
+          onPress={() => router.push("/create")}
         >
           <Text style={styles.buttonText}>Crear Nuevo</Text>
         </TouchableOpacity>
@@ -74,34 +77,34 @@ const styles = StyleSheet.create({
   },
   idolCard: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     marginBottom: 8,
     elevation: 2,
   },
   idolName: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   groupName: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     padding: 16,
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: "#007AFF",
     padding: 12,
     borderRadius: 8,
-    width: '45%',
-    alignItems: 'center',
+    width: "45%",
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-}); 
+});
