@@ -172,7 +172,22 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await refreshData();
   };
 
-  const filterIdols = async (filters: any) => {
+  const filterIdols = async (filters: {
+    idolName?: string;
+    groupName?: string;
+    companyName?: string;
+    sunSign?: string;
+    moonSign?: string;
+    risingSign?: string;
+    mercurySign?: string;
+    venusSign?: string;
+    marsSign?: string;
+    jupiterSign?: string;
+    saturnSign?: string;
+    uranusSign?: string;
+    neptuneSign?: string;
+    plutoSign?: string;
+  }) => {
     let query = `
       SELECT DISTINCT 
         i.*,
@@ -208,18 +223,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       GROUP BY i.id
     `;
 
-    const params = [];
+    const params: (string | number)[] = [];
 
     // Agregar condiciones WHERE para cada filtro
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
         switch (key) {
-          case 'sunSign':
-            query += ' AND ws_sun.name = ?';
+          case "sunSign":
+            query += " AND ws_sun.name = ?";
             params.push(value);
             break;
-          case 'moonSign':
-            query += ' AND ws_moon.name = ?';
+          case "moonSign":
+            query += " AND ws_moon.name = ?";
             params.push(value);
             break;
           // ... agregar casos similares para otros signos
@@ -228,23 +243,82 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     try {
-      const results = await database.getAllAsync(query, params);
-      const processedResults = results.map(idol => {
-        const groupIds = idol.group_ids ? idol.group_ids.split(',').map(Number) : [];
-        const groupNames = idol.group_names ? idol.group_names.split(',') : [];
-        const groupActives = idol.group_actives ? idol.group_actives.split(',').map(n => n === '1') : [];
+      const results = await database.getAllAsync<{
+        id: number;
+        name: string;
+        korean_name: string | null;
+        sun_sign_id: number | null;
+        moon_sign_id: number | null;
+        rising_sign_id: number | null;
+        mercury_sign_id: number | null;
+        venus_sign_id: number | null;
+        mars_sign_id: number | null;
+        jupiter_sign_id: number | null;
+        saturn_sign_id: number | null;
+        uranus_sign_id: number | null;
+        neptune_sign_id: number | null;
+        pluto_sign_id: number | null;
+        group_ids: string;
+        group_names: string;
+        group_actives: string;
+        sun_sign_name: string | null;
+        moon_sign_name: string | null;
+        rising_sign_name: string | null;
+        mercury_sign_name: string | null;
+        venus_sign_name: string | null;
+        mars_sign_name: string | null;
+        jupiter_sign_name: string | null;
+        saturn_sign_name: string | null;
+        uranus_sign_name: string | null;
+        neptune_sign_name: string | null;
+        pluto_sign_name: string | null;
+      }>(query, params);
 
-        const groups = groupIds.map((groupId, index) => ({
+      const processedResults = results.map((result) => {
+        const groupIds = result.group_ids
+          ? result.group_ids.split(",").map(Number)
+          : [];
+        const groupNames = result.group_names
+          ? result.group_names.split(",")
+          : [];
+        const groupActives = result.group_actives
+          ? result.group_actives.split(",").map((n: string) => n === "1")
+          : [];
+
+        const groups = groupIds.map((groupId: number, index: number) => ({
           group_id: groupId,
           group_name: groupNames[index],
-          is_active: groupActives[index]
+          is_active: groupActives[index],
         }));
 
         return {
-          ...idol,
-          id: idol.id,
-          groups
-        };
+          id: result.id,
+          name: result.name,
+          korean_name: result.korean_name,
+          sun_sign_id: result.sun_sign_id,
+          moon_sign_id: result.moon_sign_id,
+          rising_sign_id: result.rising_sign_id,
+          mercury_sign_id: result.mercury_sign_id,
+          venus_sign_id: result.venus_sign_id,
+          mars_sign_id: result.mars_sign_id,
+          jupiter_sign_id: result.jupiter_sign_id,
+          saturn_sign_id: result.saturn_sign_id,
+          uranus_sign_id: result.uranus_sign_id,
+          neptune_sign_id: result.neptune_sign_id,
+          pluto_sign_id: result.pluto_sign_id,
+          groups,
+          sun_sign_name: result.sun_sign_name,
+          moon_sign_name: result.moon_sign_name,
+          rising_sign_name: result.rising_sign_name,
+          mercury_sign_name: result.mercury_sign_name,
+          venus_sign_name: result.venus_sign_name,
+          mars_sign_name: result.mars_sign_name,
+          jupiter_sign_name: result.jupiter_sign_name,
+          saturn_sign_name: result.saturn_sign_name,
+          uranus_sign_name: result.uranus_sign_name,
+          neptune_sign_name: result.neptune_sign_name,
+          pluto_sign_name: result.pluto_sign_name,
+        } as IdolWithRelations;
       });
 
       setIdols(processedResults);
