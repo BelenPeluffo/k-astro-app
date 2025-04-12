@@ -58,3 +58,26 @@ export interface IdolWithRelations extends Idol {
   neptune_sign_name: string | null;
   pluto_sign_name: string | null;
 }
+
+export interface GroupWithRelations extends Group {
+  company_name: string | null;
+  idols: {
+    idol_id: number;
+    idol_name: string;
+    is_active: boolean;
+  }[];
+  // Propiedades temporales para el mapeo
+  idol_ids?: string;
+  idol_names?: string;
+  idol_actives?: string;
+}
+
+export interface CompanyWithRelations extends Company {
+  groups: {
+    group_id: number;
+    group_name: string;
+  }[];
+  // Propiedades temporales para el mapeo
+  group_ids?: string;
+  group_names?: string;
+}

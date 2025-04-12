@@ -1,11 +1,9 @@
-import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native';
+import { View, TextInput, StyleSheet, ScrollView, TouchableOpacity, Text, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAppContext } from '@/contexts/App.provider';
-import { Alert } from 'react-native';
-import { CompanyRepository } from '@/database/repository/Company.repository';
 import { useSQLiteContext } from 'expo-sqlite';
+import { CompanyRepository } from '@/database/repository/Company.repository';
 
 export default function CreateCompanyPage() {
   const router = useRouter();
@@ -23,41 +21,49 @@ export default function CreateCompanyPage() {
     try {
       setIsLoading(true);
       const repository = new CompanyRepository(database);
-      const exists = await repository.exists(name);
-
-      if (exists) {
+      
+      // Buscar compañías con el mismo nombre
+      const existingCompanies = await repository.findByName(name);
+      
+      if (existingCompanies.length > 0) {
+        // Mostrar alerta con las coincidencias
         Alert.alert(
-          "Compañía existente",
-          "Ya existe una compañía con este nombre",
+          "¡Atención!",
+          `Ya existen ${existingCompanies.length} compañías con nombres similares. ¿Deseas ver los detalles de alguna de ellas?`,
           [
-            {
-              text: "Volver al inicio",
-              onPress: () => router.replace("/"),
-              style: "cancel"
-            },
+            ...existingCompanies.map(company => ({
+              text: `${company.name} (${company.groups.length} grupos)`,
+              onPress: () => {
+                router.push(`/company/${company.id}`);
+              }
+            })),
             {
               text: "Crear de todos modos",
               onPress: async () => {
-                try {
-                  await createCompany(name);
-                  Alert.alert("Éxito", "Compañía creada correctamente", [
-                    { text: "OK", onPress: () => router.replace("/") }
-                  ]);
-                } catch (error) {
-                  Alert.alert("Error", "No se pudo crear la compañía");
-                }
+                await createCompany(name);
+                Alert.alert("Éxito", "Compañía creada correctamente", [
+                  { text: "OK", onPress: () => router.replace("/") }
+                ]);
               },
-              style: "destructive"
+              style: "default"
+            },
+            {
+              text: "Cancelar",
+              style: "cancel"
             }
           ]
         );
-      } else {
-        await createCompany(name);
-        Alert.alert("Éxito", "Compañía creada correctamente", [
-          { text: "OK", onPress: () => router.replace("/") }
-        ]);
+        return;
       }
+
+      // Si no hay coincidencias, crear la compañía
+      await createCompany(name);
+      
+      Alert.alert("Éxito", "Compañía creada correctamente", [
+        { text: "OK", onPress: () => router.replace("/") }
+      ]);
     } catch (error) {
+      console.error('Error al crear compañía:', error);
       Alert.alert("Error", "No se pudo crear la compañía");
     } finally {
       setIsLoading(false);
