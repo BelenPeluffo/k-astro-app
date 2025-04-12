@@ -228,6 +228,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
         switch (key) {
+          case "idolName":
+            query += " AND i.name LIKE ?";
+            params.push(`%${value}%`);
+            break;
+          case "groupName":
+            query += " AND g.name LIKE ?";
+            params.push(`%${value}%`);
+            break;
+          case "companyName":
+            query += " AND EXISTS (SELECT 1 FROM company c WHERE c.id = g.company_id AND c.name LIKE ?)";
+            params.push(`%${value}%`);
+            break;
           case "sunSign":
             query += " AND i.sun_sign_id IS NOT NULL AND ws_sun.name = ?";
             params.push(value);
