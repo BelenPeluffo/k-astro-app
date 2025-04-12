@@ -21,10 +21,13 @@ export default function CreateIdolPage() {
   const database = useSQLiteContext();
   const { createIdol, groups } = useAppContext();
   const [name, setName] = useState("");
-  const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<Array<{
+    group_id: number;
+    is_active: boolean;
+  }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
-  const [selectedSigns, setSelectedSigns] = useState({
+  const [selectedSigns, setSelectedSigns] = useState<Record<string, number | null>>({
     sun_sign_id: null,
     moon_sign_id: null,
     rising_sign_id: null,
@@ -49,8 +52,8 @@ export default function CreateIdolPage() {
   }, [database]);
 
   const handleCreate = async () => {
-    if (!name || selectedGroups.length === 0) {
-      Alert.alert("Error", "Por favor completa los campos requeridos");
+    if (!name) {
+      Alert.alert("Error", "Por favor ingresa el nombre del idol");
       return;
     }
 
@@ -60,7 +63,7 @@ export default function CreateIdolPage() {
       
       await createIdol(
         name,
-        selectedGroups,
+        selectedGroups.length > 0 ? selectedGroups : undefined,
         koreanName || null,
         selectedSigns
       );
@@ -76,7 +79,7 @@ export default function CreateIdolPage() {
     }
   };
 
-  const planetLabels = {
+  const planetLabels: Record<string, string> = {
     sun_sign_id: "Sol",
     moon_sign_id: "Luna",
     rising_sign_id: "Ascendente",
@@ -161,7 +164,7 @@ export default function CreateIdolPage() {
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleCreate}
-        disabled={isLoading || !name.trim() || selectedGroups.length === 0}
+        disabled={isLoading || !name.trim()}
       >
         <Text style={styles.buttonText}>
           {isLoading ? "Creando..." : "Crear"}

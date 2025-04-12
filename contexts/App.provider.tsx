@@ -11,7 +11,7 @@ export interface AppContextType {
   groups: Group[];
   createIdol: (
     name: string,
-    groups: Array<{
+    groups?: Array<{
       group_id: number;
       is_active: boolean;
     }>,
@@ -34,7 +34,7 @@ export interface AppContextType {
     >
   ) => Promise<void>;
   createCompany: (name: string) => Promise<void>;
-  createGroup: (name: string, companyId: number) => Promise<void>;
+  createGroup: (name: string, companyId?: number) => Promise<void>;
   refreshData: () => Promise<void>;
   filterIdols: (filters: {
     idolName?: string;
@@ -136,7 +136,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createIdol = async (
     name: string,
-    groups: Array<{
+    groups?: Array<{
       group_id: number;
       is_active: boolean;
     }>,
@@ -167,7 +167,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await refreshData();
   };
 
-  const createGroup = async (name: string, companyId: number) => {
+  const createGroup = async (name: string, companyId?: number) => {
     await groupRepository.create(name, companyId);
     await refreshData();
   };

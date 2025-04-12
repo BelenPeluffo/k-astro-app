@@ -15,15 +15,15 @@ export default function CreateGroupPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
-    if (!name || !companyId) {
-      Alert.alert("Error", "Por favor completa los campos requeridos");
+    if (!name) {
+      Alert.alert("Error", "Por favor ingresa el nombre del grupo");
       return;
     }
 
     try {
       setIsLoading(true);
       const repository = new GroupRepository(database);
-      const exists = await repository.exists(name, companyId);
+      const exists = await repository.exists(name, companyId || 0);
 
       if (exists) {
         Alert.alert(
@@ -39,7 +39,7 @@ export default function CreateGroupPage() {
               text: "Crear de todos modos",
               onPress: async () => {
                 try {
-                  await createGroup(name, companyId);
+                  await createGroup(name, companyId || undefined);
                   Alert.alert("Éxito", "Grupo creado correctamente", [
                     { text: "OK", onPress: () => router.replace("/") }
                   ]);
@@ -52,7 +52,7 @@ export default function CreateGroupPage() {
           ]
         );
       } else {
-        await createGroup(name, companyId);
+        await createGroup(name, companyId || undefined);
         Alert.alert("Éxito", "Grupo creado correctamente", [
           { text: "OK", onPress: () => router.replace("/") }
         ]);
@@ -92,7 +92,7 @@ export default function CreateGroupPage() {
       <TouchableOpacity 
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleCreate}
-        disabled={isLoading || !name.trim() || !companyId}
+        disabled={isLoading || !name.trim()}
       >
         <Text style={styles.buttonText}>
           {isLoading ? 'Creando...' : 'Crear'}

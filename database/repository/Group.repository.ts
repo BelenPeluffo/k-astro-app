@@ -17,10 +17,10 @@ export class GroupRepository extends BaseRepository<Group> {
     return result.length > 0 ? result[0] as GroupWithCompany : null;
   }
 
-  async create(name: string, companyId: number): Promise<void> {
+  async create(name: string, companyId?: number): Promise<void> {
     await this.execute(
       `INSERT INTO "group" (name, company_id) VALUES (?, ?)`,
-      [name, companyId]
+      [name, companyId || null]
     );
   }
 
@@ -32,12 +32,14 @@ export class GroupRepository extends BaseRepository<Group> {
     return result as Group[];
   }
 
-  async exists(name: string, companyId: number): Promise<boolean> {
-    const result = await this.db.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM ${this.tableName} 
-       WHERE name = ? AND company_id = ?`,
-      [name, companyId]
-    );
-    return result?.count > 0;
+  async exists(name: string, companyId?: number): Promise<boolean> {
+    const query = companyId 
+      ? `SELECT COUNT(*) as count FROM ${this.tableName} WHERE name = ? AND company_id = ?`
+      : `SELECT COUNT(*) as count FROM ${this.tableName} WHERE name = ? AND company_id IS NULL`;
+    
+    const params = companyId ? [name, companyId] : [name];
+    
+    const result = await this.db.getFirstAsync<{ count: number }>(query, params);
+    return result?.count ? result.count > 0 : false;
   }
 } 

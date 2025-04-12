@@ -69,7 +69,7 @@ export class IdolRepository extends BaseRepository<Idol> {
 
   async create(
     name: string,
-    groups: Array<{
+    groups?: Array<{
       group_id: number,
       is_active: boolean
     }>,
@@ -110,13 +110,15 @@ export class IdolRepository extends BaseRepository<Idol> {
       
       const idolId = result!.id;
 
-      // 2. Insertar las relaciones con los grupos
-      for (const group of groups) {
-        await this.execute(
-          `INSERT INTO idol_group (idol_id, group_id, is_active) 
-           VALUES (?, ?, ?)`,
-          [idolId, group.group_id, group.is_active ?? true ? 1 : 0]
-        );
+      // 2. Insertar las relaciones con los grupos si existen
+      if (groups && groups.length > 0) {
+        for (const group of groups) {
+          await this.execute(
+            `INSERT INTO idol_group (idol_id, group_id, is_active) 
+             VALUES (?, ?, ?)`,
+            [idolId, group.group_id, group.is_active ?? true ? 1 : 0]
+          );
+        }
       }
 
       await this.db.execAsync('COMMIT');
