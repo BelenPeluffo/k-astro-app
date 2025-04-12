@@ -115,16 +115,14 @@ export class IdolRepository extends BaseRepository<Idol> {
         await this.execute(
           `INSERT INTO idol_group (idol_id, group_id, is_active) 
            VALUES (?, ?, ?)`,
-          [idolId, group.group_id, group.is_active ? 1 : 0]
+          [idolId, group.group_id, group.is_active ?? true ? 1 : 0]
         );
       }
 
-      // Si todo salió bien, confirmar la transacción
       await this.db.execAsync('COMMIT');
     } catch (error) {
-      // Si hubo algún error, deshacer todos los cambios
       await this.db.execAsync('ROLLBACK');
-      throw error; // Re-lanzar el error para que se maneje en el nivel superior
+      throw error;
     }
   }
 

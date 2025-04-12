@@ -58,14 +58,9 @@ export default function CreateIdolPage() {
       setIsLoading(true);
       const repository = new IdolRepository(database);
       
-      const groupsData = selectedGroups.map(groupId => ({
-        group_id: groupId,
-        is_active: true
-      }));
-
       await createIdol(
         name,
-        groupsData,
+        selectedGroups,
         koreanName || null,
         selectedSigns
       );
@@ -121,15 +116,18 @@ export default function CreateIdolPage() {
           key={group.id}
           style={styles.groupSelector}
           onPress={() => {
-            if (selectedGroups.includes(group.id)) {
-              setSelectedGroups(selectedGroups.filter((id) => id !== group.id));
+            if (selectedGroups.some(g => g.group_id === group.id)) {
+              setSelectedGroups(selectedGroups.filter((g) => g.group_id !== group.id));
             } else {
-              setSelectedGroups([...selectedGroups, group.id]);
+              setSelectedGroups([...selectedGroups, {
+                group_id: group.id,
+                is_active: true
+              }]);
             }
           }}
         >
           <Text style={styles.groupLabel}>{group.name}</Text>
-          {selectedGroups.includes(group.id) && (
+          {selectedGroups.some(g => g.group_id === group.id) && (
             <Text style={styles.selectedLabel}>Seleccionado</Text>
           )}
         </TouchableOpacity>

@@ -151,15 +151,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const filterIdols = async (filters: any) => {
-    const repository = new IdolRepository(database);
-    
-    // Log de los filtros recibidos
-    console.log('Filtros aplicados:', filters);
-    
     let query = `
-      SELECT DISTINCT i.*, 
-        g.name as group_name,
-        c.name as company_name,
+      SELECT DISTINCT 
+        i.*,
+        GROUP_CONCAT(g.id) as group_ids,
+        GROUP_CONCAT(g.name) as group_names,
+        GROUP_CONCAT(ig.is_active) as group_actives,
         ws_sun.name as sun_sign_name,
         ws_moon.name as moon_sign_name,
         ws_rising.name as rising_sign_name,
@@ -172,9 +169,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         ws_neptune.name as neptune_sign_name,
         ws_pluto.name as pluto_sign_name
       FROM idol i
-      LEFT JOIN idol_group ig ON i.id = ig.idol_id AND ig.is_active = 1
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id
       LEFT JOIN \`group\` g ON ig.group_id = g.id
-      LEFT JOIN company c ON g.company_id = c.id
       LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
       LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
       LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
@@ -187,6 +183,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
       LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
       WHERE 1=1
+      GROUP BY i.id
     `;
 
     const params = [];
@@ -210,11 +207,23 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       const results = await database.getAllAsync(query, params);
-      const processedResults = results.map(idol => ({
-        ...idol,
-        id: idol.id, // Asegurarse de que el id esté presente
-        group: idol.group_name ? { name: idol.group_name } : null
-      }));
+      const processedResults = results.map(idol => {
+        const groupIds = idol.group_ids ? idol.group_ids.split(',').map(Number) : [];
+        const groupNames = idol.group_names ? idol.group_names.split(',') : [];
+        const groupActives = idol.group_actives ? idol.group_actives.split(',').map(n => n === '1') : [];
+
+        const groups = groupIds.map((groupId, index) => ({
+          group_id: groupId,
+          group_name: groupNames[index],
+          is_active: groupActives[index]
+        }));
+
+        return {
+          ...idol,
+          id: idol.id,
+          groups
+        };
+      });
 
       setIdols(processedResults);
     } catch (error) {

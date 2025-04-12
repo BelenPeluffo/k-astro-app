@@ -10,15 +10,21 @@ export const HomeScreen = () => {
   const { idols } = useAppContext();
   const { activeFilters } = useFiltersState();
 
-  const renderIdolItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.idolCard}
-      onPress={() => router.push(`/idol/${item.id}`)}
-    >
-      <Text style={styles.idolName}>{item.name}</Text>
-      <Text style={styles.groupName}>{item.group?.name}</Text>
-    </TouchableOpacity>
-  );
+  const renderIdolItem = ({ item }) => {
+    const activeGroup = item.groups?.find(g => g.is_active);
+    
+    return (
+      <TouchableOpacity 
+        style={styles.idolCard}
+        onPress={() => router.push(`/idol/${item.id}`)}
+      >
+        <Text style={styles.idolName}>{item.name}</Text>
+        <Text style={styles.groupName}>
+          {activeGroup ? activeGroup.group_name : 'Sin grupo activo'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const handleFiltersPress = () => {
     // Forzar la navegación como modal

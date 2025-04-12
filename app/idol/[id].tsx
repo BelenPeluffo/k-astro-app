@@ -119,7 +119,7 @@ export default function IdolDetailsPage() {
                   >
                     <Text style={[styles.subtitle, styles.link]}>
                       {group.group_name}
-                      {group.is_active ? '' : ' (Inactivo)'}
+                      {group.is_active ? ' (activo)' : ''}
                     </Text>
                   </TouchableOpacity>
                   {index < idol.groups.length - 1 && (
