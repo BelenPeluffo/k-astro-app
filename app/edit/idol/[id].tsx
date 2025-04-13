@@ -26,13 +26,14 @@ export default function EditIdolPage() {
   
   const [name, setName] = useState("");
   const [koreanName, setKoreanName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [selectedGroups, setSelectedGroups] = useState<Array<{
     group_id: number;
     is_active: boolean;
   }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
-  const [selectedSigns, setSelectedSigns] = useState({
+  const [selectedSigns, setSelectedSigns] = useState<Record<string, number | null>>({
     sun_sign_id: null,
     moon_sign_id: null,
     rising_sign_id: null,
@@ -60,6 +61,7 @@ export default function EditIdolPage() {
         if (idol) {
           setName(idol.name);
           setKoreanName(idol.korean_name || '');
+          setBirthDate(idol.birth_date || '');
           setSelectedGroups(idol.groups.map(g => ({
             group_id: g.group_id,
             is_active: g.is_active
@@ -99,8 +101,9 @@ export default function EditIdolPage() {
       await updateIdol(
         Number(id),
         name,
-        selectedGroups,
         koreanName.trim() || null,
+        birthDate.trim() || null,
+        selectedGroups,
         selectedSigns
       );
       Alert.alert(
@@ -162,6 +165,13 @@ export default function EditIdolPage() {
         placeholder="Nombre en Coreano (opcional)"
         value={koreanName}
         onChangeText={setKoreanName}
+        editable={!isLoading}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Fecha de Nacimiento (YYYY-MM-DD)"
+        value={birthDate}
+        onChangeText={setBirthDate}
         editable={!isLoading}
       />
 

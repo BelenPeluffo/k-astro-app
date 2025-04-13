@@ -11,17 +11,17 @@ import React from 'react';
 import { useFiltersState } from '@/hooks/useFiltersState';
 
 const PLANETS = [
-  { key: 'sun', label: 'Sol', signKey: 'sun_sign_name', filterKey: 'sunSign' },
-  { key: 'moon', label: 'Luna', signKey: 'moon_sign_name', filterKey: 'moonSign' },
-  { key: 'rising', label: 'Ascendente', signKey: 'rising_sign_name', filterKey: 'risingSign' },
-  { key: 'mercury', label: 'Mercurio', signKey: 'mercury_sign_name', filterKey: 'mercurySign' },
-  { key: 'venus', label: 'Venus', signKey: 'venus_sign_name', filterKey: 'venusSign' },
-  { key: 'mars', label: 'Marte', signKey: 'mars_sign_name', filterKey: 'marsSign' },
-  { key: 'jupiter', label: 'Júpiter', signKey: 'jupiter_sign_name', filterKey: 'jupiterSign' },
-  { key: 'saturn', label: 'Saturno', signKey: 'saturn_sign_name', filterKey: 'saturnSign' },
-  { key: 'uranus', label: 'Urano', signKey: 'uranus_sign_name', filterKey: 'uranusSign' },
-  { key: 'neptune', label: 'Neptuno', signKey: 'neptune_sign_name', filterKey: 'neptuneSign' },
-  { key: 'pluto', label: 'Plutón', signKey: 'pluto_sign_name', filterKey: 'plutoSign' },
+  { key: 'sun', label: 'Sol', signKey: 'sun_sign_name' as keyof IdolWithRelations, filterKey: 'sunSign' as const },
+  { key: 'moon', label: 'Luna', signKey: 'moon_sign_name' as keyof IdolWithRelations, filterKey: 'moonSign' as const },
+  { key: 'rising', label: 'Ascendente', signKey: 'rising_sign_name' as keyof IdolWithRelations, filterKey: 'risingSign' as const },
+  { key: 'mercury', label: 'Mercurio', signKey: 'mercury_sign_name' as keyof IdolWithRelations, filterKey: 'mercurySign' as const },
+  { key: 'venus', label: 'Venus', signKey: 'venus_sign_name' as keyof IdolWithRelations, filterKey: 'venusSign' as const },
+  { key: 'mars', label: 'Marte', signKey: 'mars_sign_name' as keyof IdolWithRelations, filterKey: 'marsSign' as const },
+  { key: 'jupiter', label: 'Júpiter', signKey: 'jupiter_sign_name' as keyof IdolWithRelations, filterKey: 'jupiterSign' as const },
+  { key: 'saturn', label: 'Saturno', signKey: 'saturn_sign_name' as keyof IdolWithRelations, filterKey: 'saturnSign' as const },
+  { key: 'uranus', label: 'Urano', signKey: 'uranus_sign_name' as keyof IdolWithRelations, filterKey: 'uranusSign' as const },
+  { key: 'neptune', label: 'Neptuno', signKey: 'neptune_sign_name' as keyof IdolWithRelations, filterKey: 'neptuneSign' as const },
+  { key: 'pluto', label: 'Plutón', signKey: 'pluto_sign_name' as keyof IdolWithRelations, filterKey: 'plutoSign' as const },
 ];
 
 export default function IdolDetailsPage() {
@@ -78,7 +78,7 @@ export default function IdolDetailsPage() {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     Alert.alert(
       "Confirmar eliminación",
       "¿Estás seguro de que deseas eliminar este idol?",
@@ -109,6 +109,9 @@ export default function IdolDetailsPage() {
           <Text style={styles.title}>{idol.name}</Text>
           {idol.korean_name && (
             <Text style={styles.koreanName}>{idol.korean_name}</Text>
+          )}
+          {idol.birth_date && (
+            <Text style={styles.birthDate}>Fecha de Nacimiento: {idol.birth_date}</Text>
           )}
           <View style={styles.subtitleContainer}>
             {idol.groups && idol.groups.length > 0 ? (
@@ -217,5 +220,10 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
     fontWeight: '500',
+  },
+  birthDate: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 8,
   },
 }); 

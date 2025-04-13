@@ -42,6 +42,7 @@ export default function CreateIdolPage() {
     pluto_sign_id: null,
   });
   const [koreanName, setKoreanName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [existingIdols, setExistingIdols] = useState<any[]>([]);
 
@@ -76,8 +77,9 @@ export default function CreateIdolPage() {
       // Si no hay coincidencias, crear el idol
       await createIdol(
         name,
-        selectedGroups.length > 0 ? selectedGroups : undefined,
         koreanName || null,
+        birthDate || null,
+        selectedGroups.length > 0 ? selectedGroups : undefined,
         selectedSigns
       );
       
@@ -96,8 +98,9 @@ export default function CreateIdolPage() {
     try {
       await createIdol(
         name,
-        selectedGroups.length > 0 ? selectedGroups : undefined,
         koreanName || null,
+        birthDate || null,
+        selectedGroups.length > 0 ? selectedGroups : undefined,
         selectedSigns
       );
       setShowDuplicateModal(false);
@@ -139,6 +142,13 @@ export default function CreateIdolPage() {
         placeholder="Nombre en Coreano (opcional)"
         value={koreanName}
         onChangeText={setKoreanName}
+        editable={!isLoading}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Fecha de Nacimiento (YYYY-MM-DD)"
+        value={birthDate}
+        onChangeText={setBirthDate}
         editable={!isLoading}
       />
 
