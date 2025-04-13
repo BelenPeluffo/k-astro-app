@@ -5,19 +5,27 @@ import { IdolWithRelations } from '@/database/interfaces';
 import { useRouter } from 'expo-router';
 
 export default function TimelinePage() {
-  const { idols } = useAppContext();
+  const context = useAppContext();
   const [sortedIdols, setSortedIdols] = useState<IdolWithRelations[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    if (!context) {
+      setIsLoading(false);
+      return;
+    }
+
+    const idols = context.idols || [];
     // Filtrar y ordenar idols por fecha de nacimiento
-    const idolsWithBirthDate = idols.filter(idol => idol.birth_date);
+    const idolsWithBirthDate = idols.filter((idol: IdolWithRelations) => idol.birth_date);
     const sorted = [...idolsWithBirthDate].sort((a, b) => {
       if (!a.birth_date || !b.birth_date) return 0;
       return new Date(a.birth_date).getTime() - new Date(b.birth_date).getTime();
     });
     setSortedIdols(sorted);
-  }, [idols]);
+    setIsLoading(false);
+  }, [context]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Fecha desconocida';
@@ -26,28 +34,40 @@ export default function TimelinePage() {
     return `${day}/${month}/${year}`;
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Text>Cargando...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Línea Temporal de Idols</Text>
       <ScrollView style={styles.timeline}>
-        {sortedIdols.map((idol) => (
-          <TouchableOpacity 
-            key={idol.id} 
-            style={styles.timelineItem}
-            onPress={() => router.push(`/idol/${idol.id}`)}
-          >
-            <View style={styles.timelineDot} />
-            <View style={styles.timelineContent}>
-              <Text style={styles.idolName}>{idol.name}</Text>
-              <Text style={styles.birthDate}>
-                {formatDate(idol.birth_date)}
-              </Text>
-              <Text style={styles.groups}>
-                {idol.groups.map(g => g.group_name).join(', ')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {sortedIdols.length > 0 ? (
+          sortedIdols.map((idol) => (
+            <TouchableOpacity 
+              key={idol.id} 
+              style={styles.timelineItem}
+              onPress={() => router.push(`/idol/${idol.id}`)}
+            >
+              <View style={styles.timelineDot} />
+              <View style={styles.timelineContent}>
+                <Text style={styles.idolName}>{idol.name}</Text>
+                <Text style={styles.birthDate}>
+                  {formatDate(idol.birth_date)}
+                </Text>
+                <Text style={styles.groups}>
+                  {idol.groups?.map(g => g.group_name).join(', ') || 'Sin grupos'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text style={styles.noData}>No hay idols con fecha de nacimiento registrada</Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -101,5 +121,11 @@ const styles = StyleSheet.create({
   groups: {
     fontSize: 14,
     color: '#888',
+  },
+  noData: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666',
+    fontSize: 16,
   },
 }); 
