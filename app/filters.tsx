@@ -32,6 +32,7 @@ export default function FiltersPage() {
     uranusSign: '',
     neptuneSign: '',
     plutoSign: '',
+    mediaType: '',
   });
 
   useEffect(() => {
@@ -85,9 +86,28 @@ export default function FiltersPage() {
       </View>
 
       <View style={styles.filterSection}>
+        <Text style={styles.sectionTitle}>Contenido Multimedia</Text>
+        <View style={styles.signSelector}>
+          <Text style={styles.planetLabel}>{filterLabels.mediaType}</Text>
+          <Picker
+            selectedValue={filters.mediaType}
+            onValueChange={(value) => 
+              setFilters(prev => ({...prev, mediaType: value}))
+            }
+            style={styles.picker}
+          >
+            <Picker.Item label="Cualquier tipo" value="" />
+            <Picker.Item label="K-Drama" value="k-drama" />
+            <Picker.Item label="Variety Show" value="variety_show" />
+            <Picker.Item label="Movie" value="movie" />
+          </Picker>
+        </View>
+      </View>
+
+      <View style={styles.filterSection}>
         <Text style={styles.sectionTitle}>Signos Zodiacales</Text>
         {Object.entries(filterLabels).map(([key, label]) => {
-          if (key === 'idolName' || key === 'groupName' || key === 'companyName') return null;
+          if (key === 'idolName' || key === 'groupName' || key === 'companyName' || key === 'mediaType') return null;
           const filterKey = key as keyof FilterParams;
           return (
             <View key={key} style={styles.signSelector}>
