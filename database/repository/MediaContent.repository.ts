@@ -193,4 +193,8 @@ export class MediaContentRepository extends BaseRepository<MediaContent> {
       } as MediaContentWithRelations;
     });
   }
+
+  async findAll(): Promise<MediaContent[]> {
+    return await this.db.getAllAsync<MediaContent>(`SELECT * FROM ${this.tableName}`);
+  }
 } 
