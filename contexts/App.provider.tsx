@@ -64,6 +64,7 @@ export interface AppContextType {
     uranusSign?: string;
     neptuneSign?: string;
     plutoSign?: string;
+    mediaType?: 'k-drama' | 'variety_show' | 'movie';
   }) => Promise<void>;
   deleteIdol: (id: number) => Promise<void>;
   deleteGroup: (id: number) => Promise<void>;
@@ -120,7 +121,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshData = async () => {
     try {
       const [idolsData, companiesData, groupsData, mediaContentData] = await Promise.all([
-        idolRepository.findAll(),
+        idolRepository.findByFilters({}),
         companyRepository.findAll(),
         groupRepository.findAll(),
         mediaContentRepository.findAll()
@@ -129,7 +130,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIdols(idolsData);
       setCompanies(companiesData);
       setGroups(groupsData);
-      setMediaContent(mediaContentData);
+      setMediaContent(mediaContentData.map(mc => ({ ...mc, idols: [] })));
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
@@ -267,6 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     uranusSign?: string;
     neptuneSign?: string;
     plutoSign?: string;
+    mediaType?: 'k-drama' | 'variety_show' | 'movie';
   }) => {
     try {
       const filteredIdols = await idolRepository.findByFilters(filters);

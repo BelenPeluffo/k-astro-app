@@ -420,4 +420,192 @@ export class IdolRepository extends BaseRepository<Idol> {
       } as IdolWithRelations;
     });
   }
+
+  async findByFilters(filters: {
+    idolName?: string;
+    groupName?: string;
+    companyName?: string;
+    sunSign?: string;
+    moonSign?: string;
+    risingSign?: string;
+    mercurySign?: string;
+    venusSign?: string;
+    marsSign?: string;
+    jupiterSign?: string;
+    saturnSign?: string;
+    uranusSign?: string;
+    neptuneSign?: string;
+    plutoSign?: string;
+    mediaType?: 'k-drama' | 'variety_show' | 'movie';
+  }): Promise<IdolWithRelations[]> {
+    let query = `
+      SELECT i.*, 
+        GROUP_CONCAT(ig.group_id) as group_ids,
+        GROUP_CONCAT(g.name) as group_names,
+        GROUP_CONCAT(ig.is_active) as group_actives,
+        GROUP_CONCAT(imc.media_content_id) as media_content_ids,
+        GROUP_CONCAT(mc.title) as media_content_titles,
+        GROUP_CONCAT(mc.type) as media_content_types,
+        GROUP_CONCAT(imc.role) as media_content_roles,
+        ws_sun.name as sun_sign_name,
+        ws_moon.name as moon_sign_name,
+        ws_rising.name as rising_sign_name,
+        ws_mercury.name as mercury_sign_name,
+        ws_venus.name as venus_sign_name,
+        ws_mars.name as mars_sign_name,
+        ws_jupiter.name as jupiter_sign_name,
+        ws_saturn.name as saturn_sign_name,
+        ws_uranus.name as uranus_sign_name,
+        ws_neptune.name as neptune_sign_name,
+        ws_pluto.name as pluto_sign_name
+      FROM ${this.tableName} i
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id
+      LEFT JOIN "group" g ON ig.group_id = g.id
+      LEFT JOIN idol_media_content imc ON i.id = imc.idol_id
+      LEFT JOIN media_content mc ON imc.media_content_id = mc.id
+      LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
+      LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
+      LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
+      LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
+      LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
+      LEFT JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
+      LEFT JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
+      LEFT JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
+      LEFT JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
+      LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
+      LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
+      WHERE 1=1
+    `;
+
+    const params: any[] = [];
+
+    if (filters.idolName) {
+      query += ` AND (i.name LIKE ? OR i.korean_name LIKE ?)`;
+      const searchTerm = `%${filters.idolName}%`;
+      params.push(searchTerm, searchTerm);
+    }
+
+    if (filters.groupName) {
+      query += ` AND g.name LIKE ?`;
+      params.push(`%${filters.groupName}%`);
+    }
+
+    if (filters.companyName) {
+      query += ` AND EXISTS (
+        SELECT 1 FROM "group" g2
+        JOIN company c ON g2.company_id = c.id
+        WHERE g2.id = g.id AND c.name LIKE ?
+      )`;
+      params.push(`%${filters.companyName}%`);
+    }
+
+    if (filters.mediaType) {
+      query += ` AND mc.type = ?`;
+      params.push(filters.mediaType);
+    }
+
+    // Agregar filtros de signos zodiacales
+    const signFilters = {
+      sunSign: { column: 'ws_sun.name', value: filters.sunSign },
+      moonSign: { column: 'ws_moon.name', value: filters.moonSign },
+      risingSign: { column: 'ws_rising.name', value: filters.risingSign },
+      mercurySign: { column: 'ws_mercury.name', value: filters.mercurySign },
+      venusSign: { column: 'ws_venus.name', value: filters.venusSign },
+      marsSign: { column: 'ws_mars.name', value: filters.marsSign },
+      jupiterSign: { column: 'ws_jupiter.name', value: filters.jupiterSign },
+      saturnSign: { column: 'ws_saturn.name', value: filters.saturnSign },
+      uranusSign: { column: 'ws_uranus.name', value: filters.uranusSign },
+      neptuneSign: { column: 'ws_neptune.name', value: filters.neptuneSign },
+      plutoSign: { column: 'ws_pluto.name', value: filters.plutoSign },
+    };
+
+    Object.entries(signFilters).forEach(([_, { column, value }]) => {
+      if (value) {
+        query += ` AND ${column} = ?`;
+        params.push(value);
+      }
+    });
+
+    query += ` GROUP BY i.id`;
+
+    const results = await this.db.getAllAsync<{
+      id: number;
+      name: string;
+      korean_name: string | null;
+      birth_date: string | null;
+      sun_sign_id: number | null;
+      moon_sign_id: number | null;
+      rising_sign_id: number | null;
+      mercury_sign_id: number | null;
+      venus_sign_id: number | null;
+      mars_sign_id: number | null;
+      jupiter_sign_id: number | null;
+      saturn_sign_id: number | null;
+      uranus_sign_id: number | null;
+      neptune_sign_id: number | null;
+      pluto_sign_id: number | null;
+      group_ids: string;
+      group_names: string;
+      group_actives: string;
+      media_content_ids: string;
+      media_content_titles: string;
+      media_content_types: string;
+      media_content_roles: string;
+      sun_sign_name: string | null;
+      moon_sign_name: string | null;
+      rising_sign_name: string | null;
+      mercury_sign_name: string | null;
+      venus_sign_name: string | null;
+      mars_sign_name: string | null;
+      jupiter_sign_name: string | null;
+      saturn_sign_name: string | null;
+      uranus_sign_name: string | null;
+      neptune_sign_name: string | null;
+      pluto_sign_name: string | null;
+    }>(query, params);
+
+    return results.map(result => {
+      // Procesar los grupos concatenados
+      const groupIds = result.group_ids ? result.group_ids.split(',').map(Number) : [];
+      const groupNames = result.group_names ? result.group_names.split(',') : [];
+      const groupActives = result.group_actives ? result.group_actives.split(',').map(Number).map(Boolean) : [];
+
+      const groups = groupIds.map((group_id, index) => ({
+        group_id,
+        group_name: groupNames[index],
+        is_active: groupActives[index]
+      }));
+
+      // Procesar el contenido multimedia concatenado
+      const mediaContentIds = result.media_content_ids ? result.media_content_ids.split(',').map(Number) : [];
+      const mediaContentTitles = result.media_content_titles ? result.media_content_titles.split(',') : [];
+      const mediaContentTypes = result.media_content_types ? result.media_content_types.split(',') as ('k-drama' | 'variety_show' | 'movie')[] : [];
+      const mediaContentRoles = result.media_content_roles ? result.media_content_roles.split(',') : [];
+
+      const mediaContent = mediaContentIds.map((media_content_id, index) => ({
+        media_content_id,
+        media_content_title: mediaContentTitles[index],
+        type: mediaContentTypes[index],
+        role: mediaContentRoles[index] || null
+      }));
+
+      // Eliminar las propiedades concatenadas del resultado
+      const { 
+        group_ids, 
+        group_names, 
+        group_actives, 
+        media_content_ids, 
+        media_content_titles, 
+        media_content_types, 
+        media_content_roles, 
+        ...idol 
+      } = result;
+
+      return {
+        ...idol,
+        groups,
+        media_content: mediaContent
+      };
+    });
+  }
 }
