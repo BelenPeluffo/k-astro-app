@@ -9,15 +9,17 @@ import {
   Modal,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import { useAppContext } from "@/contexts/App.provider";
 import { useSQLiteContext } from "expo-sqlite";
 import { IdolRepository } from "@/database/repository/Idol.repository";
 import { IdolWithRelations } from "@/database/interfaces";
+import { MediaContentRepository } from "@/database/repository/MediaContent.repository";
 
 export default function CreateMediaContentPage() {
   const router = useRouter();
+  const { idolId } = useLocalSearchParams();
   const database = useSQLiteContext();
   const { createMediaContent, idols } = useAppContext();
   const [title, setTitle] = useState("");
@@ -32,9 +34,26 @@ export default function CreateMediaContentPage() {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [existingMediaContent, setExistingMediaContent] = useState<any[]>([]);
 
+  useEffect(() => {
+    if (idolId) {
+      const idol = idols.find(i => i.id === Number(idolId));
+      if (idol) {
+        setSelectedIdols([{
+          idol_id: idol.id,
+          role: null
+        }]);
+      }
+    }
+  }, [idolId, idols]);
+
   const handleCreate = async () => {
     if (!title) {
       Alert.alert("Error", "El título es requerido");
+      return;
+    }
+
+    if (selectedIdols.length === 0) {
+      Alert.alert("Error", "Debes seleccionar al menos un idol");
       return;
     }
 
@@ -47,7 +66,9 @@ export default function CreateMediaContentPage() {
         releaseDate || null,
         description || null
       );
-      router.back();
+      Alert.alert("Éxito", "Contenido multimedia creado correctamente", [
+        { text: "OK", onPress: () => router.back() }
+      ]);
     } catch (error) {
       console.error("Error creating media content:", error);
       Alert.alert("Error", "No se pudo crear el contenido multimedia");
@@ -97,36 +118,40 @@ export default function CreateMediaContentPage() {
         />
 
         <Text style={styles.label}>Idols</Text>
-        {idols.map((idol) => (
-          <View key={idol.id} style={styles.idolItem}>
-            <Text>{idol.name}</Text>
-            <TextInput
-              style={styles.roleInput}
-              placeholder="Rol"
-              onChangeText={(role) => {
-                const existingIndex = selectedIdols.findIndex(
-                  (s) => s.idol_id === idol.id
-                );
-                if (existingIndex >= 0) {
-                  const newSelectedIdols = [...selectedIdols];
-                  newSelectedIdols[existingIndex] = {
-                    idol_id: idol.id,
-                    role: role || null,
-                  };
-                  setSelectedIdols(newSelectedIdols);
-                } else {
-                  setSelectedIdols([
-                    ...selectedIdols,
-                    { idol_id: idol.id, role: role || null },
-                  ]);
-                }
-              }}
-            />
-          </View>
-        ))}
+        {idols.map((idol) => {
+          const existingRole = selectedIdols.find(s => s.idol_id === idol.id)?.role;
+          return (
+            <View key={idol.id} style={styles.idolItem}>
+              <Text>{idol.name}</Text>
+              <TextInput
+                style={styles.roleInput}
+                placeholder="Rol"
+                value={existingRole || ''}
+                onChangeText={(role) => {
+                  const existingIndex = selectedIdols.findIndex(
+                    (s) => s.idol_id === idol.id
+                  );
+                  if (existingIndex >= 0) {
+                    const newSelectedIdols = [...selectedIdols];
+                    newSelectedIdols[existingIndex] = {
+                      idol_id: idol.id,
+                      role: role || null,
+                    };
+                    setSelectedIdols(newSelectedIdols);
+                  } else {
+                    setSelectedIdols([
+                      ...selectedIdols,
+                      { idol_id: idol.id, role: role || null },
+                    ]);
+                  }
+                }}
+              />
+            </View>
+          );
+        })}
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, isLoading && styles.buttonDisabled]}
           onPress={handleCreate}
           disabled={isLoading}
         >
@@ -223,6 +248,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: "center",
     marginTop: 20,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   buttonText: {
     color: "#fff",

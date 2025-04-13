@@ -1,14 +1,16 @@
 import { createContext, useEffect, useState, useContext } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { Idol, Company, Group, IdolWithRelations } from "@/database/interfaces";
+import { Idol, Company, Group, IdolWithRelations, MediaContent, MediaContentWithRelations } from "@/database/interfaces";
 import { IdolRepository } from "@/database/repository/Idol.repository";
 import { CompanyRepository } from "@/database/repository/Company.repository";
 import { GroupRepository } from "@/database/repository/Group.repository";
+import { MediaContentRepository } from "@/database/repository/MediaContent.repository";
 
 export interface AppContextType {
   idols: IdolWithRelations[];
   companies: Company[];
   groups: Group[];
+  mediaContent: MediaContentWithRelations[];
   createIdol: (
     name: string,
     koreanName: string | null,
@@ -36,6 +38,16 @@ export interface AppContextType {
   ) => Promise<void>;
   createCompany: (name: string) => Promise<void>;
   createGroup: (name: string, companyId?: number) => Promise<void>;
+  createMediaContent: (
+    title: string,
+    type: 'k-drama' | 'variety_show' | 'movie',
+    idols?: Array<{
+      idol_id: number,
+      role: string | null
+    }>,
+    releaseDate?: string | null,
+    description?: string | null
+  ) => Promise<void>;
   refreshData: () => Promise<void>;
   filterIdols: (filters: {
     idolName?: string;
@@ -56,12 +68,13 @@ export interface AppContextType {
   deleteIdol: (id: number) => Promise<void>;
   deleteGroup: (id: number) => Promise<void>;
   deleteCompany: (id: number) => Promise<void>;
+  deleteMediaContent: (id: number) => Promise<void>;
   updateIdol: (
     id: number,
     name: string,
     koreanName: string | null,
     birthDate?: string | null,
-    groups: Array<{
+    groups?: Array<{
       group_id: number;
       is_active: boolean;
     }>,
@@ -80,55 +93,45 @@ export interface AppContextType {
         | "neptune_sign_id"
         | "pluto_sign_id"
       >
-    >
+    >,
+    mediaContent?: Array<{
+      media_content_id: number;
+      role: string | null;
+    }>
   ) => Promise<void>;
 }
 
-export const AppContext = createContext<AppContextType>({
-  idols: [],
-  companies: [],
-  groups: [],
-  createIdol: async () => {},
-  createCompany: async () => {},
-  createGroup: async () => {},
-  refreshData: async () => {},
-  filterIdols: async () => {},
-  deleteIdol: async () => {},
-  deleteGroup: async () => {},
-  deleteCompany: async () => {},
-  updateIdol: async () => {},
-});
+export const AppContext = createContext<AppContextType | null>(null);
 
 export const useAppContext = () => useContext(AppContext);
 
-export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const database = useSQLiteContext();
   const idolRepository = new IdolRepository(database);
   const companyRepository = new CompanyRepository(database);
   const groupRepository = new GroupRepository(database);
+  const mediaContentRepository = new MediaContentRepository(database);
 
   const [idols, setIdols] = useState<IdolWithRelations[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [mediaContent, setMediaContent] = useState<MediaContentWithRelations[]>([]);
 
   const refreshData = async () => {
     try {
-      const [newIdols, newCompanies, newGroups] = await Promise.all([
-        Promise.all(
-          (
-            await idolRepository.findAll()
-          ).map((idol) => idolRepository.findWithRelations(idol.id))
-        ),
+      const [idolsData, companiesData, groupsData, mediaContentData] = await Promise.all([
+        idolRepository.findAll(),
         companyRepository.findAll(),
         groupRepository.findAll(),
+        mediaContentRepository.findAll()
       ]);
-      setIdols(
-        newIdols.filter((idol): idol is IdolWithRelations => idol !== null)
-      );
-      setCompanies(newCompanies);
-      setGroups(newGroups);
+
+      setIdols(idolsData);
+      setCompanies(companiesData);
+      setGroups(groupsData);
+      setMediaContent(mediaContentData);
     } catch (error) {
-      console.error("Error refreshing data:", error);
+      console.error('Error refreshing data:', error);
     }
   };
 
@@ -138,7 +141,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createIdol = async (
     name: string,
-    koreanName?: string | null,
+    koreanName: string | null,
     birthDate?: string | null,
     groups?: Array<{
       group_id: number;
@@ -161,18 +164,92 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       >
     >
   ) => {
-    await idolRepository.create(name, groups, koreanName ?? null, birthDate ?? null, signs);
-    await refreshData();
+    try {
+      await idolRepository.create(name, groups, koreanName, birthDate, signs);
+      await refreshData();
+    } catch (error) {
+      console.error('Error creating idol:', error);
+      throw error;
+    }
   };
 
   const createCompany = async (name: string) => {
-    await companyRepository.create(name);
-    await refreshData();
+    try {
+      await companyRepository.create(name);
+      await refreshData();
+    } catch (error) {
+      console.error('Error creating company:', error);
+      throw error;
+    }
   };
 
   const createGroup = async (name: string, companyId?: number) => {
-    await groupRepository.create(name, companyId);
-    await refreshData();
+    try {
+      await groupRepository.create(name, companyId);
+      await refreshData();
+    } catch (error) {
+      console.error('Error creating group:', error);
+      throw error;
+    }
+  };
+
+  const createMediaContent = async (
+    title: string,
+    type: 'k-drama' | 'variety_show' | 'movie',
+    idols?: Array<{
+      idol_id: number,
+      role: string | null
+    }>,
+    releaseDate?: string | null,
+    description?: string | null
+  ) => {
+    try {
+      await mediaContentRepository.create(title, type, idols, releaseDate, description);
+      await refreshData();
+    } catch (error) {
+      console.error('Error creating media content:', error);
+      throw error;
+    }
+  };
+
+  const deleteIdol = async (id: number) => {
+    try {
+      await idolRepository.delete(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting idol:', error);
+      throw error;
+    }
+  };
+
+  const deleteGroup = async (id: number) => {
+    try {
+      await groupRepository.delete(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      throw error;
+    }
+  };
+
+  const deleteCompany = async (id: number) => {
+    try {
+      await companyRepository.delete(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      throw error;
+    }
+  };
+
+  const deleteMediaContent = async (id: number) => {
+    try {
+      await mediaContentRepository.delete(id);
+      await refreshData();
+    } catch (error) {
+      console.error('Error deleting media content:', error);
+      throw error;
+    }
   };
 
   const filterIdols = async (filters: {
@@ -191,213 +268,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     neptuneSign?: string;
     plutoSign?: string;
   }) => {
-    let query = `
-      SELECT DISTINCT 
-        i.*,
-        GROUP_CONCAT(g.id) as group_ids,
-        GROUP_CONCAT(g.name) as group_names,
-        GROUP_CONCAT(ig.is_active) as group_actives,
-        ws_sun.name as sun_sign_name,
-        ws_moon.name as moon_sign_name,
-        ws_rising.name as rising_sign_name,
-        ws_mercury.name as mercury_sign_name,
-        ws_venus.name as venus_sign_name,
-        ws_mars.name as mars_sign_name,
-        ws_jupiter.name as jupiter_sign_name,
-        ws_saturn.name as saturn_sign_name,
-        ws_uranus.name as uranus_sign_name,
-        ws_neptune.name as neptune_sign_name,
-        ws_pluto.name as pluto_sign_name
-      FROM idol i
-      LEFT JOIN idol_group ig ON i.id = ig.idol_id
-      LEFT JOIN \`group\` g ON ig.group_id = g.id
-      LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
-      LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
-      LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
-      LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
-      LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
-      LEFT JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
-      LEFT JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
-      LEFT JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
-      LEFT JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
-      LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
-      LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
-      WHERE 1=1
-    `;
-
-    const params: (string | number)[] = [];
-
-    // Agregar condiciones WHERE para cada filtro
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) {
-        switch (key) {
-          case "idolName":
-            query += " AND i.name LIKE ?";
-            params.push(`%${value}%`);
-            break;
-          case "groupName":
-            query += " AND g.name LIKE ?";
-            params.push(`%${value}%`);
-            break;
-          case "companyName":
-            query += " AND EXISTS (SELECT 1 FROM company c WHERE c.id = g.company_id AND c.name LIKE ?)";
-            params.push(`%${value}%`);
-            break;
-          case "sunSign":
-            query += " AND i.sun_sign_id IS NOT NULL AND ws_sun.name = ?";
-            params.push(value);
-            break;
-          case "moonSign":
-            query += " AND i.moon_sign_id IS NOT NULL AND ws_moon.name = ?";
-            params.push(value);
-            break;
-          case "risingSign":
-            query += " AND i.rising_sign_id IS NOT NULL AND ws_rising.name = ?";
-            params.push(value);
-            break;
-          case "mercurySign":
-            query += " AND i.mercury_sign_id IS NOT NULL AND ws_mercury.name = ?";
-            params.push(value);
-            break;
-          case "venusSign":
-            query += " AND i.venus_sign_id IS NOT NULL AND ws_venus.name = ?";
-            params.push(value);
-            break;
-          case "marsSign":
-            query += " AND i.mars_sign_id IS NOT NULL AND ws_mars.name = ?";
-            params.push(value);
-            break;
-          case "jupiterSign":
-            query += " AND i.jupiter_sign_id IS NOT NULL AND ws_jupiter.name = ?";
-            params.push(value);
-            break;
-          case "saturnSign":
-            query += " AND i.saturn_sign_id IS NOT NULL AND ws_saturn.name = ?";
-            params.push(value);
-            break;
-          case "uranusSign":
-            query += " AND i.uranus_sign_id IS NOT NULL AND ws_uranus.name = ?";
-            params.push(value);
-            break;
-          case "neptuneSign":
-            query += " AND i.neptune_sign_id IS NOT NULL AND ws_neptune.name = ?";
-            params.push(value);
-            break;
-          case "plutoSign":
-            query += " AND i.pluto_sign_id IS NOT NULL AND ws_pluto.name = ?";
-            params.push(value);
-            break;
-        }
-      }
-    });
-
-    query += " GROUP BY i.id";
-
     try {
-      const results = await database.getAllAsync<{
-        id: number;
-        name: string;
-        korean_name: string | null;
-        sun_sign_id: number | null;
-        moon_sign_id: number | null;
-        rising_sign_id: number | null;
-        mercury_sign_id: number | null;
-        venus_sign_id: number | null;
-        mars_sign_id: number | null;
-        jupiter_sign_id: number | null;
-        saturn_sign_id: number | null;
-        uranus_sign_id: number | null;
-        neptune_sign_id: number | null;
-        pluto_sign_id: number | null;
-        group_ids: string;
-        group_names: string;
-        group_actives: string;
-        sun_sign_name: string | null;
-        moon_sign_name: string | null;
-        rising_sign_name: string | null;
-        mercury_sign_name: string | null;
-        venus_sign_name: string | null;
-        mars_sign_name: string | null;
-        jupiter_sign_name: string | null;
-        saturn_sign_name: string | null;
-        uranus_sign_name: string | null;
-        neptune_sign_name: string | null;
-        pluto_sign_name: string | null;
-      }>(query, params);
-
-      const processedResults = results.map((result) => {
-        const groupIds = result.group_ids
-          ? result.group_ids.split(",").map(Number)
-          : [];
-        const groupNames = result.group_names
-          ? result.group_names.split(",")
-          : [];
-        const groupActives = result.group_actives
-          ? result.group_actives.split(",").map((n: string) => n === "1")
-          : [];
-
-        const groups = groupIds.map((groupId: number, index: number) => ({
-          group_id: groupId,
-          group_name: groupNames[index],
-          is_active: groupActives[index],
-        }));
-
-        return {
-          id: result.id,
-          name: result.name,
-          korean_name: result.korean_name,
-          sun_sign_id: result.sun_sign_id,
-          moon_sign_id: result.moon_sign_id,
-          rising_sign_id: result.rising_sign_id,
-          mercury_sign_id: result.mercury_sign_id,
-          venus_sign_id: result.venus_sign_id,
-          mars_sign_id: result.mars_sign_id,
-          jupiter_sign_id: result.jupiter_sign_id,
-          saturn_sign_id: result.saturn_sign_id,
-          uranus_sign_id: result.uranus_sign_id,
-          neptune_sign_id: result.neptune_sign_id,
-          pluto_sign_id: result.pluto_sign_id,
-          groups,
-          sun_sign_name: result.sun_sign_name,
-          moon_sign_name: result.moon_sign_name,
-          rising_sign_name: result.rising_sign_name,
-          mercury_sign_name: result.mercury_sign_name,
-          venus_sign_name: result.venus_sign_name,
-          mars_sign_name: result.mars_sign_name,
-          jupiter_sign_name: result.jupiter_sign_name,
-          saturn_sign_name: result.saturn_sign_name,
-          uranus_sign_name: result.uranus_sign_name,
-          neptune_sign_name: result.neptune_sign_name,
-          pluto_sign_name: result.pluto_sign_name,
-        } as IdolWithRelations;
-      });
-
-      setIdols(processedResults);
+      const filteredIdols = await idolRepository.findByFilters(filters);
+      setIdols(filteredIdols);
     } catch (error) {
-      console.error("Error en filterIdols:", error);
+      console.error('Error filtering idols:', error);
       throw error;
     }
-  };
-
-  const deleteIdol = async (id: number) => {
-    await idolRepository.delete(id);
-    await refreshData();
-  };
-
-  const deleteGroup = async (id: number) => {
-    await groupRepository.delete(id);
-    await refreshData();
-  };
-
-  const deleteCompany = async (id: number) => {
-    await companyRepository.delete(id);
-    await refreshData();
   };
 
   const updateIdol = async (
     id: number,
     name: string,
-    koreanName?: string | null,
+    koreanName: string | null,
     birthDate?: string | null,
     groups?: Array<{
       group_id: number;
@@ -418,9 +301,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         | "neptune_sign_id"
         | "pluto_sign_id"
       >
-    >
+    >,
+    mediaContent?: Array<{
+      media_content_id: number;
+      role: string | null;
+    }>
   ) => {
-    await idolRepository.update(id, name, groups ?? [], koreanName ?? null, birthDate ?? null, signs);
+    await idolRepository.update(
+      id,
+      name,
+      groups ?? [],
+      koreanName ?? null,
+      birthDate ?? null,
+      signs,
+      mediaContent ?? []
+    );
     await refreshData();
   };
 
@@ -430,14 +325,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         idols,
         companies,
         groups,
+        mediaContent,
         createIdol,
         createCompany,
         createGroup,
+        createMediaContent,
         refreshData,
         filterIdols,
         deleteIdol,
         deleteGroup,
         deleteCompany,
+        deleteMediaContent,
         updateIdol,
       }}
     >
