@@ -19,6 +19,13 @@ export default function TimelinePage() {
     setSortedIdols(sorted);
   }, [idols]);
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Fecha desconocida';
+    // Mostrar la fecha en formato DD/MM/YYYY
+    const [year, month, day] = dateString.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Línea Temporal de Idols</Text>
@@ -33,7 +40,7 @@ export default function TimelinePage() {
             <View style={styles.timelineContent}>
               <Text style={styles.idolName}>{idol.name}</Text>
               <Text style={styles.birthDate}>
-                {idol.birth_date ? new Date(idol.birth_date).toLocaleDateString() : 'Fecha desconocida'}
+                {formatDate(idol.birth_date)}
               </Text>
               <Text style={styles.groups}>
                 {idol.groups.map(g => g.group_name).join(', ')}
