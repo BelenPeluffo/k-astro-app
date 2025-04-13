@@ -11,11 +11,12 @@ export interface AppContextType {
   groups: Group[];
   createIdol: (
     name: string,
+    koreanName: string | null,
+    birthDate?: string | null,
     groups?: Array<{
       group_id: number;
       is_active: boolean;
     }>,
-    koreanName: string | null,
     signs?: Partial<
       Pick<
         Idol,
@@ -58,11 +59,12 @@ export interface AppContextType {
   updateIdol: (
     id: number,
     name: string,
+    koreanName: string | null,
+    birthDate?: string | null,
     groups: Array<{
       group_id: number;
       is_active: boolean;
     }>,
-    koreanName: string | null,
     signs?: Partial<
       Pick<
         Idol,
@@ -136,11 +138,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const createIdol = async (
     name: string,
+    koreanName?: string | null,
+    birthDate?: string | null,
     groups?: Array<{
       group_id: number;
       is_active: boolean;
     }>,
-    koreanName: string | null,
     signs?: Partial<
       Pick<
         Idol,
@@ -158,7 +161,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       >
     >
   ) => {
-    await idolRepository.create(name, groups, koreanName, signs);
+    await idolRepository.create(name, groups, koreanName ?? null, birthDate ?? null, signs);
     await refreshData();
   };
 
@@ -394,11 +397,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const updateIdol = async (
     id: number,
     name: string,
-    groups: Array<{
+    koreanName?: string | null,
+    birthDate?: string | null,
+    groups?: Array<{
       group_id: number;
       is_active: boolean;
     }>,
-    koreanName: string | null,
     signs?: Partial<
       Pick<
         Idol,
@@ -416,7 +420,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       >
     >
   ) => {
-    await idolRepository.update(id, name, groups, koreanName, signs);
+    await idolRepository.update(id, name, groups ?? [], koreanName ?? null, birthDate ?? null, signs);
     await refreshData();
   };
 

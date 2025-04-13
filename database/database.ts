@@ -29,6 +29,7 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       korean_name TEXT,
+      birth_date TEXT,
       sun_sign_id INTEGER,
       moon_sign_id INTEGER,
       rising_sign_id INTEGER,
@@ -62,6 +63,16 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       FOREIGN KEY (group_id) REFERENCES "group"(id)
     );
   `);
+
+  // Check if birth_date column exists and add it if it doesn't
+  const tableInfo = await db.getAllAsync<{ name: string }>("PRAGMA table_info(idol)");
+  const hasBirthDate = tableInfo.some(column => column.name === 'birth_date');
+  
+  if (!hasBirthDate) {
+    await db.execAsync(`
+      ALTER TABLE idol ADD COLUMN birth_date TEXT;
+    `);
+  }
 
   // Verificar si la tabla de signos zodiacales está vacía
   const zodiacCount = await db.getFirstAsync<{ count: number }>(
