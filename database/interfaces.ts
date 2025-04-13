@@ -41,11 +41,33 @@ export interface GroupWithCompany extends Group {
   company?: Company;
 }
 
+export interface MediaContent {
+  id: number;
+  title: string;
+  type: 'k-drama' | 'variety_show' | 'movie';
+  release_date: string | null;
+  description: string | null;
+}
+
+export interface MediaContentWithRelations extends MediaContent {
+  idols: {
+    idol_id: number;
+    idol_name: string;
+    role: string | null;
+  }[];
+}
+
 export interface IdolWithRelations extends Idol {
   groups: {
     group_id: number;
     group_name: string;
     is_active: boolean;
+  }[];
+  media_content: {
+    media_content_id: number;
+    media_content_title: string;
+    type: 'k-drama' | 'variety_show' | 'movie';
+    role: string | null;
   }[];
   sun_sign_name: string | null;
   moon_sign_name: string | null;

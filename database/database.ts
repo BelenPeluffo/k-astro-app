@@ -63,6 +63,24 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       FOREIGN KEY (idol_id) REFERENCES idol(id),
       FOREIGN KEY (group_id) REFERENCES "group"(id)
     );
+
+    CREATE TABLE IF NOT EXISTS media_content (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('k-drama', 'variety_show', 'movie')),
+      release_date TEXT,
+      description TEXT,
+      UNIQUE(title, type)
+    );
+
+    CREATE TABLE IF NOT EXISTS idol_media_content (
+      idol_id INTEGER,
+      media_content_id INTEGER,
+      role TEXT,
+      PRIMARY KEY (idol_id, media_content_id),
+      FOREIGN KEY (idol_id) REFERENCES idol(id),
+      FOREIGN KEY (media_content_id) REFERENCES media_content(id)
+    );
   `);
 
   // Check if birth_date column exists and add it if it doesn't
