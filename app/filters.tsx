@@ -7,15 +7,24 @@ import { ScrollView, TouchableOpacity, Text, View, TextInput, StyleSheet } from 
 import { WesternZodiacSignRepository } from '@/database/repository/WesternZodiacSign.repository';
 import { WesternZodiacSign } from '@/database/interfaces';
 import { Picker } from '@react-native-picker/picker';
+import { MediaContentRepository } from '@/database/repository/MediaContent.repository';
+import { MediaContent } from '@/database/interfaces';
 
 export default function FiltersPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const database = useSQLiteContext();
-  const { filterIdols } = useAppContext();
+  const context = useAppContext();
   const { applyFilters } = useFiltersState();
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
+  const [mediaContents, setMediaContents] = useState<MediaContent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  if (!context) {
+    throw new Error('FiltersPage must be used within an AppProvider');
+  }
+  
+  const { filterIdols } = context;
   
   const [filters, setFilters] = useState<FilterParams>({
     idolName: '',
@@ -32,16 +41,22 @@ export default function FiltersPage() {
     uranusSign: '',
     neptuneSign: '',
     plutoSign: '',
-    mediaType: '',
+    mediaType: undefined,
+    mediaContentId: undefined,
   });
 
   useEffect(() => {
-    const loadZodiacSigns = async () => {
-      const repository = new WesternZodiacSignRepository(database);
-      const signs = await repository.findAll();
+    const loadData = async () => {
+      const zodiacRepo = new WesternZodiacSignRepository(database);
+      const mediaContentRepo = new MediaContentRepository(database);
+      const [signs, contents] = await Promise.all([
+        zodiacRepo.findAll(),
+        mediaContentRepo.findAll()
+      ]);
       setZodiacSigns(signs);
+      setMediaContents(contents);
     };
-    loadZodiacSigns();
+    loadData();
   }, [database]);
 
   const handleApplyFilters = async () => {
@@ -92,7 +107,7 @@ export default function FiltersPage() {
           <Picker
             selectedValue={filters.mediaType}
             onValueChange={(value) => 
-              setFilters(prev => ({...prev, mediaType: value}))
+              setFilters(prev => ({...prev, mediaType: value || undefined}))
             }
             style={styles.picker}
           >
@@ -102,12 +117,32 @@ export default function FiltersPage() {
             <Picker.Item label="Movie" value="movie" />
           </Picker>
         </View>
+        <View style={styles.signSelector}>
+          <Text style={styles.planetLabel}>{filterLabels.mediaContentId}</Text>
+          <Picker
+            selectedValue={filters.mediaContentId}
+            onValueChange={(value) => 
+              setFilters(prev => ({...prev, mediaContentId: value || undefined}))
+            }
+            style={styles.picker}
+          >
+            <Picker.Item label="Cualquier contenido" value="" />
+            {mediaContents.map((content) => (
+              <Picker.Item 
+                key={content.id} 
+                label={content.title} 
+                value={content.id}
+              />
+            ))}
+          </Picker>
+        </View>
       </View>
 
       <View style={styles.filterSection}>
         <Text style={styles.sectionTitle}>Signos Zodiacales</Text>
         {Object.entries(filterLabels).map(([key, label]) => {
-          if (key === 'idolName' || key === 'groupName' || key === 'companyName' || key === 'mediaType') return null;
+          if (key === 'idolName' || key === 'groupName' || key === 'companyName' || 
+              key === 'mediaType' || key === 'mediaContentId') return null;
           const filterKey = key as keyof FilterParams;
           return (
             <View key={key} style={styles.signSelector}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAppContext } from '@/contexts/App.provider';
+import { useAppContext, AppContextType } from '@/contexts/App.provider';
 
 export type FilterParams = {
   idolName?: string;
@@ -17,7 +17,8 @@ export type FilterParams = {
   uranusSign?: string;
   neptuneSign?: string;
   plutoSign?: string;
-  mediaType?: 'k-drama' | 'variety_show' | 'movie' | '';
+  mediaType?: 'k-drama' | 'variety_show' | 'movie';
+  mediaContentId?: number;
 };
 
 export const filterLabels: Record<keyof FilterParams, string> = {
@@ -36,12 +37,19 @@ export const filterLabels: Record<keyof FilterParams, string> = {
   neptuneSign: 'Signo de Neptuno',
   plutoSign: 'Signo de Plutón',
   mediaType: 'Tipo de Contenido',
+  mediaContentId: 'Contenido Multimedia'
 };
 
 export const useFiltersState = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { filterIdols, refreshData } = useAppContext();
+  const context = useAppContext();
+  
+  if (!context) {
+    throw new Error('useFiltersState must be used within an AppProvider');
+  }
+  
+  const { filterIdols, refreshData } = context;
   const [filters, setFilters] = useState<FilterParams>({});
 
   useEffect(() => {
