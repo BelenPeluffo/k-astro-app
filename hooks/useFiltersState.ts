@@ -1,25 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppContext } from '@/contexts/App.provider';
 
-export const filterLabels = {
-  idolName: "Nombre del Idol",
-  groupName: "Grupo",
-  companyName: "Compañía",
-  sunSign: "Sol",
-  moonSign: "Luna",
-  risingSign: "Ascendente",
-  mercurySign: "Mercurio",
-  venusSign: "Venus",
-  marsSign: "Marte",
-  jupiterSign: "Júpiter",
-  saturnSign: "Saturno",
-  uranusSign: "Urano",
-  neptuneSign: "Neptuno",
-  plutoSign: "Plutón",
-};
-
-export interface FilterParams {
+export type FilterParams = {
   idolName?: string;
   groupName?: string;
   companyName?: string;
@@ -34,12 +17,39 @@ export interface FilterParams {
   uranusSign?: string;
   neptuneSign?: string;
   plutoSign?: string;
-}
+  mediaType?: 'k-drama' | 'variety_show' | 'movie' | '';
+};
+
+export const filterLabels: Record<keyof FilterParams, string> = {
+  idolName: 'Nombre del Idol',
+  groupName: 'Nombre del Grupo',
+  companyName: 'Nombre de la Compañía',
+  sunSign: 'Signo Solar',
+  moonSign: 'Signo Lunar',
+  risingSign: 'Signo Ascendente',
+  mercurySign: 'Signo de Mercurio',
+  venusSign: 'Signo de Venus',
+  marsSign: 'Signo de Marte',
+  jupiterSign: 'Signo de Júpiter',
+  saturnSign: 'Signo de Saturno',
+  uranusSign: 'Signo de Urano',
+  neptuneSign: 'Signo de Neptuno',
+  plutoSign: 'Signo de Plutón',
+  mediaType: 'Tipo de Contenido',
+};
 
 export const useFiltersState = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { filterIdols, refreshData } = useAppContext();
+  const [filters, setFilters] = useState<FilterParams>({});
+
+  useEffect(() => {
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== '')
+    ) as FilterParams;
+    setFilters(cleanParams);
+  }, [params]);
 
   const filterValidParams = (params: Record<string, any>): FilterParams => {
     return Object.entries(params)
@@ -60,19 +70,20 @@ export const useFiltersState = () => {
     router.replace('/');
   };
 
-  const applyFilters = async (filters: FilterParams) => {
-    const validFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, value]) => value && value !== '')
+  const applyFilters = async (newFilters: FilterParams) => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(newFilters).filter(([_, value]) => value !== '')
     );
-    
-    await filterIdols(validFilters);
-    router.replace({
+    await filterIdols(cleanFilters);
+    router.push({
       pathname: '/',
-      params: validFilters
+      params: cleanFilters,
     });
   };
 
   return {
+    filters,
+    setFilters,
     activeFilters: filterValidParams(params),
     clearFilters,
     applyFilters,
