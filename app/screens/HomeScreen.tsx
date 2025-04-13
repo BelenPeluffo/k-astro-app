@@ -63,6 +63,13 @@ export const HomeScreen = () => {
         >
           <Text style={styles.buttonText}>Crear Nuevo</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.push("/timeline")}
+        >
+          <Text style={styles.buttonText}>Línea Temporal</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -95,13 +102,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     padding: 16,
+    flexWrap: "wrap",
   },
   button: {
     backgroundColor: "#007AFF",
     padding: 12,
     borderRadius: 8,
-    width: "45%",
+    width: "30%",
     alignItems: "center",
+    marginBottom: 8,
   },
   buttonText: {
     color: "#fff",

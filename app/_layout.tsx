@@ -102,6 +102,12 @@ export default function RootLayout() {
             title: "Editar Idol",
           }} 
         />
+        <Stack.Screen 
+          name="timeline" 
+          options={{ 
+            title: "Línea Temporal",
+          }} 
+        />
       </Stack>
       </AppProvider>
     </SQLiteProvider>
