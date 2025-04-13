@@ -197,4 +197,45 @@ export class MediaContentRepository extends BaseRepository<MediaContent> {
   async findAll(): Promise<MediaContent[]> {
     return await this.db.getAllAsync<MediaContent>(`SELECT * FROM ${this.tableName}`);
   }
+
+  async findAllWithRelations(): Promise<MediaContentWithRelations[]> {
+    const query = `SELECT mc.*, 
+              GROUP_CONCAT(imc.idol_id) as idol_ids,
+              GROUP_CONCAT(i.name) as idol_names,
+              GROUP_CONCAT(imc.role) as roles
+       FROM ${this.tableName} mc
+       LEFT JOIN idol_media_content imc ON mc.id = imc.media_content_id
+       LEFT JOIN idol i ON imc.idol_id = i.id
+       GROUP BY mc.id`;
+
+    const results = await this.db.getAllAsync<{
+      id: number;
+      title: string;
+      type: 'k-drama' | 'variety_show' | 'movie';
+      release_date: string | null;
+      description: string | null;
+      idol_ids: string;
+      idol_names: string;
+      roles: string;
+    }>(query);
+
+    return results.map(result => {
+      const idolIds = result.idol_ids ? result.idol_ids.split(',').map(Number) : [];
+      const idolNames = result.idol_names ? result.idol_names.split(',') : [];
+      const roles = result.roles ? result.roles.split(',') : [];
+
+      const idols = idolIds.map((idol_id, index) => ({
+        idol_id,
+        idol_name: idolNames[index],
+        role: roles[index] || null
+      }));
+
+      const { idol_ids, idol_names, roles: _, ...mediaContent } = result;
+
+      return {
+        ...mediaContent,
+        idols
+      };
+    });
+  }
 } 

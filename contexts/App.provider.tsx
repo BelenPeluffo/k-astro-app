@@ -124,13 +124,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         idolRepository.findByFilters({}),
         companyRepository.findAll(),
         groupRepository.findAll(),
-        mediaContentRepository.findAll()
+        mediaContentRepository.findAllWithRelations()
       ]);
 
       setIdols(idolsData);
       setCompanies(companiesData);
       setGroups(groupsData);
-      setMediaContent(mediaContentData.map(mc => ({ ...mc, idols: [] })));
+      setMediaContent(mediaContentData);
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
