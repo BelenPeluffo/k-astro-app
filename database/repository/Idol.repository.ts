@@ -258,10 +258,12 @@ export class IdolRepository extends BaseRepository<Idol> {
       role: string | null;
     }>
   ): Promise<void> {
-    await this.database.transactionAsync(async (tx) => {
+    await this.db.execAsync('BEGIN TRANSACTION');
+    
+    try {
       // Actualizar datos básicos del idol
-      await tx.executeSqlAsync(
-        `UPDATE idols 
+      await this.execute(
+        `UPDATE ${this.tableName} 
          SET name = ?, 
              korean_name = ?, 
              birth_date = ?,
@@ -297,25 +299,30 @@ export class IdolRepository extends BaseRepository<Idol> {
       );
 
       // Actualizar grupos
-      await tx.executeSqlAsync('DELETE FROM idol_groups WHERE idol_id = ?', [id]);
+      await this.execute('DELETE FROM idol_group WHERE idol_id = ?', [id]);
       for (const group of groups) {
-        await tx.executeSqlAsync(
-          'INSERT INTO idol_groups (idol_id, group_id, is_active) VALUES (?, ?, ?)',
-          [id, group.group_id, group.is_active]
+        await this.execute(
+          'INSERT INTO idol_group (idol_id, group_id, is_active) VALUES (?, ?, ?)',
+          [id, group.group_id, group.is_active ? 1 : 0]
         );
       }
 
       // Actualizar contenido multimedia
-      await tx.executeSqlAsync('DELETE FROM idol_media_content WHERE idol_id = ?', [id]);
+      await this.execute('DELETE FROM idol_media_content WHERE idol_id = ?', [id]);
       if (mediaContent) {
         for (const content of mediaContent) {
-          await tx.executeSqlAsync(
+          await this.execute(
             'INSERT INTO idol_media_content (idol_id, media_content_id, role) VALUES (?, ?, ?)',
             [id, content.media_content_id, content.role]
           );
         }
       }
-    });
+
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
   }
 
   async checkTableStructure(): Promise<void> {
@@ -437,6 +444,7 @@ export class IdolRepository extends BaseRepository<Idol> {
     neptuneSign?: string;
     plutoSign?: string;
     mediaType?: 'k-drama' | 'variety_show' | 'movie';
+    mediaContentId?: number;
   }): Promise<IdolWithRelations[]> {
     let query = `
       SELECT i.*, 
@@ -502,6 +510,11 @@ export class IdolRepository extends BaseRepository<Idol> {
     if (filters.mediaType) {
       query += ` AND mc.type = ?`;
       params.push(filters.mediaType);
+    }
+
+    if (filters.mediaContentId) {
+      query += ` AND mc.id = ?`;
+      params.push(filters.mediaContentId);
     }
 
     // Agregar filtros de signos zodiacales
