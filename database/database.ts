@@ -1,5 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import { SQLiteDatabase } from "expo-sqlite";
+import { isDatabaseEmpty, getLatestBackup, importDatabase } from './backup';
 
 // Función para inicializar la base de datos
 export const initDatabase = async (db: SQLiteDatabase) => {
@@ -74,60 +75,79 @@ export const initDatabase = async (db: SQLiteDatabase) => {
     `);
   }
 
-  // Verificar si la tabla de signos zodiacales está vacía
-  const zodiacCount = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM western_zodiac_sign'
-  );
+  // Verificar si la base de datos está vacía
+  const isEmpty = await isDatabaseEmpty(db);
 
-  if (zodiacCount?.count === 0) {
-    // Insertar los signos zodiacales solo si la tabla está vacía
-    await db.execAsync(`
-      INSERT INTO western_zodiac_sign (name) VALUES
-        ('Aries'), ('Taurus'), ('Gemini'), ('Cancer'),
-        ('Leo'), ('Virgo'), ('Libra'), ('Scorpio'),
-        ('Sagittarius'), ('Capricorn'), ('Aquarius'), ('Pisces');
-    `);
-  }
+  if (isEmpty) {
+    // Intentar restaurar desde el último backup
+    const latestBackup = await getLatestBackup();
+    if (latestBackup) {
+      try {
+        await importDatabase(db, latestBackup);
+        console.log('Base de datos restaurada desde el último backup');
+        return;
+      } catch (error) {
+        console.error('Error al restaurar desde el backup:', error);
+        // Si falla la restauración, continuamos con la inicialización por defecto
+      }
+    }
 
-  // Verificar si hay compañías
-  const companyCount = await db.getFirstAsync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM company'
-  );
+    // Si no hay backup o falló la restauración, inicializar con datos por defecto
+    // Verificar si la tabla de signos zodiacales está vacía
+    const zodiacCount = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM western_zodiac_sign'
+    );
 
-  if (companyCount?.count === 0) {
-    // Insertar datos de ejemplo solo si no hay compañías
-    // 1. Insertar compañía
-    await db.execAsync(`
-      INSERT INTO company (name) VALUES ('Cube Entertainment');
-    `);
+    if (zodiacCount?.count === 0) {
+      // Insertar los signos zodiacales solo si la tabla está vacía
+      await db.execAsync(`
+        INSERT INTO western_zodiac_sign (name) VALUES
+          ('Aries'), ('Taurus'), ('Gemini'), ('Cancer'),
+          ('Leo'), ('Virgo'), ('Libra'), ('Scorpio'),
+          ('Sagittarius'), ('Capricorn'), ('Aquarius'), ('Pisces');
+      `);
+    }
 
-    // 2. Insertar grupo
-    await db.execAsync(`
-      WITH company_id AS (
-        SELECT id FROM company WHERE name = 'Cube Entertainment'
-      )
-      INSERT INTO "group" (name, company_id)
-      SELECT 'I-DLE', id
-      FROM company_id;
-    `);
+    // Verificar si hay compañías
+    const companyCount = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM company'
+    );
 
-    // 3. Insertar idol y su relación con el grupo
-    await db.execAsync(`
-      -- Primero insertamos el idol
-      INSERT INTO idol (name) VALUES ('Soyeon');
-    `);
+    if (companyCount?.count === 0) {
+      // Insertar datos de ejemplo solo si no hay compañías
+      // 1. Insertar compañía
+      await db.execAsync(`
+        INSERT INTO company (name) VALUES ('Cube Entertainment');
+      `);
 
-    await db.execAsync(`
-      -- Luego creamos la relación con el grupo
-      WITH idol_id AS (
-        SELECT id FROM idol WHERE name = 'Soyeon'
-      ), group_id AS (
-        SELECT id FROM "group" WHERE name = 'I-DLE'
-      )
-      INSERT INTO idol_group (idol_id, group_id, is_active)
-      SELECT i.id, g.id, 1
-      FROM idol_id i, group_id g;
-    `);
+      // 2. Insertar grupo
+      await db.execAsync(`
+        WITH company_id AS (
+          SELECT id FROM company WHERE name = 'Cube Entertainment'
+        )
+        INSERT INTO "group" (name, company_id)
+        SELECT 'I-DLE', id
+        FROM company_id;
+      `);
+
+      // 3. Insertar idol y su relación con el grupo
+      await db.execAsync(`
+        -- Primero insertamos el idol
+        INSERT INTO idol (name) VALUES ('Soyeon');
+      `);
+
+      await db.execAsync(`
+        -- Luego creamos la relación con el grupo
+        WITH idol_id AS (
+          SELECT id FROM idol WHERE name = 'Soyeon'
+        ), group_id AS (
+          SELECT id FROM "group" WHERE name = 'I-DLE'
+        )
+        INSERT INTO idol_group (idol_id, group_id, is_active)
+        SELECT i.id, g.id, 1
+        FROM idol_id i, group_id g;
+      `);
+    }
   }
 
   console.log('Database initialized successfully');

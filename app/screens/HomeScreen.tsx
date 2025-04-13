@@ -9,6 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAppContext } from "@/contexts/App.provider";
 import { ActiveFilters } from "@/app/components/ActiveFilters";
+import { BackupActions } from "@/app/components/BackupActions";
 import { useFiltersState } from "@/hooks/useFiltersState";
 import { IdolWithRelations } from "@/database/interfaces";
 
@@ -43,6 +44,7 @@ export const HomeScreen = () => {
 
   return (
     <View style={styles.container}>
+      <BackupActions />
       {Object.keys(activeFilters).length > 0 && (
         <ActiveFilters filters={activeFilters} />
       )}
