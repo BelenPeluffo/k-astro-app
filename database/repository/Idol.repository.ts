@@ -27,6 +27,10 @@ export class IdolRepository extends BaseRepository<Idol> {
       group_ids: string;
       group_names: string;
       group_actives: string;
+      media_content_ids: string;
+      media_content_titles: string;
+      media_content_types: string;
+      media_content_roles: string;
       sun_sign_name: string | null;
       moon_sign_name: string | null;
       rising_sign_name: string | null;
@@ -43,6 +47,10 @@ export class IdolRepository extends BaseRepository<Idol> {
               GROUP_CONCAT(ig.group_id) as group_ids,
               GROUP_CONCAT(g.name) as group_names,
               GROUP_CONCAT(ig.is_active) as group_actives,
+              GROUP_CONCAT(imc.media_content_id) as media_content_ids,
+              GROUP_CONCAT(mc.title) as media_content_titles,
+              GROUP_CONCAT(mc.type) as media_content_types,
+              GROUP_CONCAT(imc.role) as media_content_roles,
               ws_sun.name as sun_sign_name,
               ws_moon.name as moon_sign_name,
               ws_rising.name as rising_sign_name,
@@ -57,6 +65,8 @@ export class IdolRepository extends BaseRepository<Idol> {
        FROM ${this.tableName} i
        LEFT JOIN idol_group ig ON i.id = ig.idol_id
        LEFT JOIN "group" g ON ig.group_id = g.id
+       LEFT JOIN idol_media_content imc ON i.id = imc.idol_id
+       LEFT JOIN media_content mc ON imc.media_content_id = mc.id
        LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
        LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
        LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
@@ -88,12 +98,35 @@ export class IdolRepository extends BaseRepository<Idol> {
       is_active: groupActives[index]
     }));
 
+    // Procesar el contenido multimedia concatenado
+    const mediaContentIds = result.media_content_ids ? result.media_content_ids.split(',').map(Number) : [];
+    const mediaContentTitles = result.media_content_titles ? result.media_content_titles.split(',') : [];
+    const mediaContentTypes = result.media_content_types ? result.media_content_types.split(',') as ('k-drama' | 'variety_show' | 'movie')[] : [];
+    const mediaContentRoles = result.media_content_roles ? result.media_content_roles.split(',') : [];
+
+    const mediaContent = mediaContentIds.map((media_content_id, index) => ({
+      media_content_id,
+      media_content_title: mediaContentTitles[index],
+      type: mediaContentTypes[index],
+      role: mediaContentRoles[index] || null
+    }));
+
     // Eliminar las propiedades concatenadas del resultado
-    const { group_ids, group_names, group_actives, ...idol } = result;
+    const { 
+      group_ids, 
+      group_names, 
+      group_actives, 
+      media_content_ids, 
+      media_content_titles, 
+      media_content_types, 
+      media_content_roles, 
+      ...idol 
+    } = result;
 
     return {
       ...idol,
-      groups
+      groups,
+      media_content: mediaContent
     };
   }
 
@@ -198,79 +231,91 @@ export class IdolRepository extends BaseRepository<Idol> {
   async update(
     id: number,
     name: string,
-    groups?: Array<{
-      group_id: number,
-      is_active: boolean
+    groups: Array<{
+      group_id: number;
+      is_active: boolean;
     }>,
-    koreanName: string | null = null,
-    birthDate: string | null = null,
-    signs?: {
-      sun_sign_id?: number | null;
-      moon_sign_id?: number | null;
-      rising_sign_id?: number | null;
-      mercury_sign_id?: number | null;
-      venus_sign_id?: number | null;
-      mars_sign_id?: number | null;
-      jupiter_sign_id?: number | null;
-      saturn_sign_id?: number | null;
-      uranus_sign_id?: number | null;
-      neptune_sign_id?: number | null;
-      pluto_sign_id?: number | null;
-    }
+    koreanName: string | null,
+    birthDate: string | null,
+    signs?: Partial<
+      Pick<
+        Idol,
+        | "sun_sign_id"
+        | "moon_sign_id"
+        | "rising_sign_id"
+        | "mercury_sign_id"
+        | "venus_sign_id"
+        | "mars_sign_id"
+        | "jupiter_sign_id"
+        | "saturn_sign_id"
+        | "uranus_sign_id"
+        | "neptune_sign_id"
+        | "pluto_sign_id"
+      >
+    >,
+    mediaContent?: Array<{
+      media_content_id: number;
+      role: string | null;
+    }>
   ): Promise<void> {
-    await this.db.execAsync('BEGIN TRANSACTION');
-    
-    try {
-      // 1. Actualizar el idol
-      const signColumns = signs ? Object.keys(signs).filter(key => signs[key as keyof typeof signs] !== undefined) : [];
-      const updates = [
-        'name = ?',
-        'korean_name = ?',
-        'birth_date = ?',
-        ...signColumns.map(col => `${col} = ?`)
-      ];
-      
-      const params = [
-        name,
-        koreanName,
-        birthDate,
-        ...signColumns.map(col => {
-          const value = signs?.[col as keyof typeof signs];
-          return value !== null ? String(value) : null;
-        }),
-        id
-      ];
-
-      await this.execute(
-        `UPDATE ${this.tableName} 
-         SET ${updates.join(', ')}
+    await this.database.transactionAsync(async (tx) => {
+      // Actualizar datos básicos del idol
+      await tx.executeSqlAsync(
+        `UPDATE idols 
+         SET name = ?, 
+             korean_name = ?, 
+             birth_date = ?,
+             sun_sign_id = ?,
+             moon_sign_id = ?,
+             rising_sign_id = ?,
+             mercury_sign_id = ?,
+             venus_sign_id = ?,
+             mars_sign_id = ?,
+             jupiter_sign_id = ?,
+             saturn_sign_id = ?,
+             uranus_sign_id = ?,
+             neptune_sign_id = ?,
+             pluto_sign_id = ?
          WHERE id = ?`,
-        params
+        [
+          name,
+          koreanName,
+          birthDate,
+          signs?.sun_sign_id ?? null,
+          signs?.moon_sign_id ?? null,
+          signs?.rising_sign_id ?? null,
+          signs?.mercury_sign_id ?? null,
+          signs?.venus_sign_id ?? null,
+          signs?.mars_sign_id ?? null,
+          signs?.jupiter_sign_id ?? null,
+          signs?.saturn_sign_id ?? null,
+          signs?.uranus_sign_id ?? null,
+          signs?.neptune_sign_id ?? null,
+          signs?.pluto_sign_id ?? null,
+          id,
+        ]
       );
 
-      // 2. Actualizar las relaciones con los grupos si existen
-      if (groups) {
-        // Eliminar todas las relaciones existentes
-        await this.execute(
-          'DELETE FROM idol_group WHERE idol_id = ?',
-          [id]
+      // Actualizar grupos
+      await tx.executeSqlAsync('DELETE FROM idol_groups WHERE idol_id = ?', [id]);
+      for (const group of groups) {
+        await tx.executeSqlAsync(
+          'INSERT INTO idol_groups (idol_id, group_id, is_active) VALUES (?, ?, ?)',
+          [id, group.group_id, group.is_active]
         );
+      }
 
-        // Insertar las nuevas relaciones
-        for (const group of groups) {
-          await this.execute(
-            `INSERT INTO idol_group (idol_id, group_id, is_active) 
-             VALUES (?, ?, ?)`,
-            [id, group.group_id, group.is_active ?? true ? 1 : 0]
+      // Actualizar contenido multimedia
+      await tx.executeSqlAsync('DELETE FROM idol_media_content WHERE idol_id = ?', [id]);
+      if (mediaContent) {
+        for (const content of mediaContent) {
+          await tx.executeSqlAsync(
+            'INSERT INTO idol_media_content (idol_id, media_content_id, role) VALUES (?, ?, ?)',
+            [id, content.media_content_id, content.role]
           );
         }
       }
-
-      await this.db.execAsync('COMMIT');
-    } catch (error) {
-      await this.db.execAsync('ROLLBACK');
-      throw error;
-    }
+    });
   }
 
   async checkTableStructure(): Promise<void> {

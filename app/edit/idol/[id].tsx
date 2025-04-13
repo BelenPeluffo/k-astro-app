@@ -17,12 +17,13 @@ import { useSQLiteContext } from "expo-sqlite";
 import { WesternZodiacSignRepository } from "@/database/repository/WesternZodiacSign.repository";
 import { IdolRepository } from "@/database/repository/Idol.repository";
 import { WesternZodiacSign } from "@/database/interfaces";
+import { MediaContentWithRelations } from "@/database/interfaces";
 
 export default function EditIdolPage() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const database = useSQLiteContext();
-  const { updateIdol, groups } = useAppContext();
+  const { updateIdol, groups, mediaContent } = useAppContext();
   
   const [name, setName] = useState("");
   const [koreanName, setKoreanName] = useState("");
@@ -46,6 +47,10 @@ export default function EditIdolPage() {
     neptune_sign_id: null,
     pluto_sign_id: null,
   });
+  const [selectedMediaContent, setSelectedMediaContent] = useState<Array<{
+    media_content_id: number;
+    role: string | null;
+  }>>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -79,6 +84,10 @@ export default function EditIdolPage() {
             neptune_sign_id: idol.neptune_sign_id,
             pluto_sign_id: idol.pluto_sign_id,
           });
+          setSelectedMediaContent(idol.media_content.map(mc => ({
+            media_content_id: mc.media_content_id,
+            role: mc.role
+          })));
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -104,7 +113,8 @@ export default function EditIdolPage() {
         koreanName.trim() || null,
         birthDate.trim() || null,
         selectedGroups,
-        selectedSigns
+        selectedSigns,
+        selectedMediaContent
       );
       Alert.alert(
         "Éxito",
@@ -237,6 +247,42 @@ export default function EditIdolPage() {
         </View>
       ))}
 
+      <Text style={styles.sectionTitle}>Contenido Multimedia</Text>
+      <Text style={styles.subtitle}>Selecciona el contenido en el que ha aparecido</Text>
+      {mediaContent.map((content) => (
+        <View key={content.id} style={styles.mediaContentItem}>
+          <Text>{content.title}</Text>
+          <Text style={styles.mediaContentType}>
+            {content.type === 'k-drama' ? 'K-Drama' :
+             content.type === 'variety_show' ? 'Programa de Variedades' :
+             'Película'}
+          </Text>
+          <TextInput
+            style={styles.roleInput}
+            placeholder="Rol"
+            value={content.role || ''}
+            onChangeText={(role) => {
+              const existingIndex = selectedMediaContent.findIndex(
+                (s) => s.media_content_id === content.id
+              );
+              if (existingIndex >= 0) {
+                const newSelectedContent = [...selectedMediaContent];
+                newSelectedContent[existingIndex] = {
+                  media_content_id: content.id,
+                  role: role || null,
+                };
+                setSelectedMediaContent(newSelectedContent);
+              } else {
+                setSelectedMediaContent([
+                  ...selectedMediaContent,
+                  { media_content_id: content.id, role: role || null },
+                ]);
+              }
+            }}
+          />
+        </View>
+      ))}
+
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleUpdate}
@@ -335,5 +381,23 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: '#666',
+  },
+  mediaContentItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    marginBottom: 10,
+  },
+  mediaContentType: {
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 5,
+  },
+  roleInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 5,
+    borderRadius: 5,
+    marginTop: 5,
   },
 }); 

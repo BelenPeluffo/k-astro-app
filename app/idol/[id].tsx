@@ -102,128 +102,162 @@ export default function IdolDetailsPage() {
     );
   };
 
+  const handleEdit = () => {
+    router.push(`/edit/idol/${id}`);
+  };
+
   return (
-    <View style={styles.wrapper}>
-      <ScrollView style={styles.container}>
-        <View style={styles.section}>
-          <Text style={styles.title}>{idol.name}</Text>
-          {idol.korean_name && (
-            <Text style={styles.koreanName}>{idol.korean_name}</Text>
-          )}
-          {idol.birth_date && (
-            <Text style={styles.birthDate}>Fecha de Nacimiento: {idol.birth_date}</Text>
-          )}
-          <View style={styles.subtitleContainer}>
-            {idol.groups && idol.groups.length > 0 ? (
-              idol.groups.map((group, index) => (
-                <React.Fragment key={group.group_id}>
-                  <TouchableOpacity 
-                    onPress={() => router.push(`/group/${group.group_id}`)}
-                  >
-                    <Text style={[styles.subtitle, styles.link]}>
-                      {group.group_name}
-                      {group.is_active ? ' (activo)' : ''}
-                    </Text>
-                  </TouchableOpacity>
-                  {index < idol.groups.length - 1 && (
-                    <Text style={styles.subtitle}> • </Text>
-                  )}
-                </React.Fragment>
-              ))
-            ) : (
-              <Text style={styles.subtitle}>Sin grupos asignados</Text>
-            )}
-          </View>
-        </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>{idol.name}</Text>
+        {idol.korean_name && (
+          <Text style={styles.subtitle}>Nombre coreano: {idol.korean_name}</Text>
+        )}
+        {idol.birth_date && (
+          <Text style={styles.subtitle}>Fecha de nacimiento: {idol.birth_date}</Text>
+        )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Carta Astral</Text>
-          {PLANETS.map(planet => (
-            <View key={planet.key} style={styles.signInfo}>
-              <Text style={styles.label}>{planet.label}:</Text>
-              {idol[planet.signKey] ? (
-                <TouchableOpacity
-                  onPress={() => handleSignPress(planet.filterKey, idol[planet.signKey])}
-                >
-                  <Text style={styles.link}>{idol[planet.signKey]}</Text>
-                </TouchableOpacity>
-              ) : (
-                <Text style={styles.noSign}>No especificado</Text>
-              )}
+          <Text style={styles.sectionTitle}>Grupos</Text>
+          {idol.groups.map((group) => (
+            <View key={group.group_id} style={styles.groupItem}>
+              <Text style={styles.groupName}>{group.group_name}</Text>
+              <Text style={styles.groupStatus}>
+                {group.is_active ? 'Activo' : 'Inactivo'}
+              </Text>
             </View>
           ))}
         </View>
-      </ScrollView>
-      
-      <DetailActions
-        onDelete={handleDelete}
-        editRoute={`/edit/idol/${id}`}
-        entityName="idol"
-      />
-    </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contenido Multimedia</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push(`/create/media-content?idolId=${id}`)}
+          >
+            <Text style={styles.addButtonText}>+ Agregar Contenido</Text>
+          </TouchableOpacity>
+          {idol.media_content.map((content) => (
+            <TouchableOpacity
+              key={content.media_content_id}
+              style={styles.mediaContentItem}
+              onPress={() => router.push(`/media-content/${content.media_content_id}`)}
+            >
+              <Text style={styles.mediaContentTitle}>{content.media_content_title}</Text>
+              <Text style={styles.mediaContentType}>
+                {content.type === 'k-drama' ? 'K-Drama' :
+                 content.type === 'variety_show' ? 'Programa de Variedades' :
+                 'Película'}
+              </Text>
+              {content.role && (
+                <Text style={styles.mediaContentRole}>Rol: {content.role}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Signos Zodiacales</Text>
+          {PLANETS.map((planet) => {
+            const signName = idol[planet.signKey];
+            if (!signName) return null;
+            return (
+              <View key={planet.key} style={styles.signItem}>
+                <Text style={styles.signLabel}>{planet.label}:</Text>
+                <Text style={styles.signValue}>{signName}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <DetailActions 
+          onDelete={handleDelete}
+          editRoute={`/edit/idol/${id}`}
+          entityName="idol"
+        />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
+  container: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  container: {
-    flex: 1,
-  },
-  section: {
+  content: {
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 5,
+  },
+  section: {
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 10,
   },
-  signInfo: {
+  groupItem: {
     flexDirection: 'row',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  groupName: {
+    fontSize: 16,
+  },
+  groupStatus: {
+    color: '#666',
+  },
+  mediaContentItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  mediaContentTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  mediaContentType: {
+    color: '#666',
+    marginTop: 5,
+  },
+  mediaContentRole: {
+    color: '#666',
+    marginTop: 5,
+  },
+  signItem: {
+    flexDirection: 'row',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  signLabel: {
+    fontWeight: 'bold',
+    width: 100,
+  },
+  signValue: {
+    flex: 1,
+  },
+  addButton: {
+    backgroundColor: '#007AFF',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
     alignItems: 'center',
   },
-  label: {
-    fontWeight: '500',
-    marginRight: 8,
-    minWidth: 100,
-    fontSize: 16,
-  },
-  link: {
-    color: '#007AFF',
-    textDecorationLine: 'underline',
-  },
-  noSign: {
-    color: '#666',
-    fontStyle: 'italic',
-    fontSize: 16,
-  },
-  koreanName: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  birthDate: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 }); 
