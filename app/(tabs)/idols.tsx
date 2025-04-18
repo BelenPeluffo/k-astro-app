@@ -19,6 +19,13 @@ export default function IdolList() {
       })}
     >
       <View style={styles.idolInfo}>
+        {item.image_url && (
+          <Image
+            source={{ uri: item.image_url }}
+            style={styles.idolImage}
+            resizeMode="cover"
+          />
+        )}
         <Text style={styles.idolName}>{item.name}</Text>
         {item.korean_name && (
           <Text style={styles.koreanName}>{item.korean_name}</Text>
@@ -111,6 +118,12 @@ const styles = StyleSheet.create({
   },
   idolInfo: {
     flex: 1,
+  },
+  idolImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   idolName: {
     fontSize: 18,

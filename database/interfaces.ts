@@ -23,6 +23,7 @@ export interface Idol {
   name: string;
   korean_name: string | null;
   birth_date: string | null;
+  image_url: string | null;
   sun_sign_id: number | null;
   moon_sign_id: number | null;
   rising_sign_id: number | null;

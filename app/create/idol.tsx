@@ -43,6 +43,7 @@ export default function CreateIdolPage() {
   });
   const [koreanName, setKoreanName] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [existingIdols, setExistingIdols] = useState<any[]>([]);
 
@@ -56,39 +57,37 @@ export default function CreateIdolPage() {
   }, [database]);
 
   const handleCreate = async () => {
-    if (!name) {
+    if (!name.trim()) {
       Alert.alert("Error", "Por favor ingresa el nombre del idol");
       return;
     }
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const repository = new IdolRepository(database);
-      
-      // Buscar idols con el mismo nombre
-      const foundIdols = await repository.findByName(name);
-      
-      if (foundIdols.length > 0) {
-        setExistingIdols(foundIdols);
-        setShowDuplicateModal(true);
-        return;
-      }
-
-      // Si no hay coincidencias, crear el idol
       await createIdol(
         name,
-        koreanName || null,
-        birthDate || null,
-        selectedGroups.length > 0 ? selectedGroups : undefined,
+        selectedGroups,
+        koreanName.trim() || null,
+        birthDate.trim() || null,
+        imageUrl.trim() || null,
         selectedSigns
       );
-      
-      Alert.alert("Éxito", "Idol creado correctamente", [
-        { text: "OK", onPress: () => router.replace("/") }
-      ]);
+      Alert.alert(
+        "Éxito",
+        "El idol ha sido creado correctamente",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/")
+          }
+        ]
+      );
     } catch (error) {
-      console.error('Error al crear idol:', error);
-      Alert.alert("Error", "No se pudo crear el idol");
+      console.error("Error creating idol:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo crear el idol. Por favor, intenta nuevamente."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +148,13 @@ export default function CreateIdolPage() {
         placeholder="Fecha de Nacimiento (YYYY-MM-DD)"
         value={birthDate}
         onChangeText={setBirthDate}
+        editable={!isLoading}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="URL de la imagen (opcional)"
+        value={imageUrl}
+        onChangeText={setImageUrl}
         editable={!isLoading}
       />
 

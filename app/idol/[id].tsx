@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useAppContext } from '@/contexts/App.provider';
@@ -109,6 +109,13 @@ export default function IdolDetailsPage() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
+        {idol.image_url && (
+          <Image
+            source={{ uri: idol.image_url }}
+            style={styles.idolImage}
+            resizeMode="cover"
+          />
+        )}
         <Text style={styles.title}>{idol.name}</Text>
         {idol.korean_name && (
           <Text style={styles.subtitle}>Nombre coreano: {idol.korean_name}</Text>
@@ -187,6 +194,12 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+  },
+  idolImage: {
+    width: '100%',
+    height: 300,
+    borderRadius: 8,
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,

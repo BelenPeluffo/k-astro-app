@@ -31,6 +31,7 @@ export const initDatabase = async (db: SQLiteDatabase) => {
       name TEXT NOT NULL,
       korean_name TEXT,
       birth_date TEXT,
+      image_url TEXT,
       sun_sign_id INTEGER,
       moon_sign_id INTEGER,
       rising_sign_id INTEGER,
@@ -90,6 +91,15 @@ export const initDatabase = async (db: SQLiteDatabase) => {
   if (!hasBirthDate) {
     await db.execAsync(`
       ALTER TABLE idol ADD COLUMN birth_date TEXT;
+    `);
+  }
+
+  // Check if image_url column exists and add it if it doesn't
+  const hasImageUrl = tableInfo.some(column => column.name === 'image_url');
+  
+  if (!hasImageUrl) {
+    await db.execAsync(`
+      ALTER TABLE idol ADD COLUMN image_url TEXT;
     `);
   }
 

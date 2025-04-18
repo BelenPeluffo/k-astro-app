@@ -13,6 +13,7 @@ export class IdolRepository extends BaseRepository<Idol> {
       name: string;
       korean_name: string | null;
       birth_date: string | null;
+      image_url: string | null;
       sun_sign_id: number | null;
       moon_sign_id: number | null;
       rising_sign_id: number | null;
@@ -138,6 +139,7 @@ export class IdolRepository extends BaseRepository<Idol> {
     }>,
     koreanName: string | null = null,
     birthDate: string | null = null,
+    imageUrl: string | null = null,
     signs?: {
       sun_sign_id?: number | null;
       moon_sign_id?: number | null;
@@ -157,9 +159,9 @@ export class IdolRepository extends BaseRepository<Idol> {
     try {
       // 1. Insertar el idol
       const signColumns = signs ? Object.keys(signs).filter(key => signs[key as keyof typeof signs] !== undefined) : [];
-      const columns = ['name', 'korean_name', 'birth_date', ...signColumns];
-      const values = ['?', '?', '?', ...signColumns.map(() => '?')];
-      const params = [name, koreanName, birthDate, ...signColumns.map(col => {
+      const columns = ['name', 'korean_name', 'birth_date', 'image_url', ...signColumns];
+      const values = ['?', '?', '?', '?', ...signColumns.map(() => '?')];
+      const params = [name, koreanName, birthDate, imageUrl, ...signColumns.map(col => {
         const value = signs?.[col as keyof typeof signs];
         return value !== null ? String(value) : null;
       })];
@@ -237,6 +239,7 @@ export class IdolRepository extends BaseRepository<Idol> {
     }>,
     koreanName: string | null,
     birthDate: string | null,
+    imageUrl: string | null,
     signs?: Partial<
       Pick<
         Idol,
@@ -267,6 +270,7 @@ export class IdolRepository extends BaseRepository<Idol> {
          SET name = ?, 
              korean_name = ?, 
              birth_date = ?,
+             image_url = ?,
              sun_sign_id = ?,
              moon_sign_id = ?,
              rising_sign_id = ?,
@@ -283,6 +287,7 @@ export class IdolRepository extends BaseRepository<Idol> {
           name,
           koreanName,
           birthDate,
+          imageUrl,
           signs?.sun_sign_id ?? null,
           signs?.moon_sign_id ?? null,
           signs?.rising_sign_id ?? null,
@@ -576,6 +581,126 @@ export class IdolRepository extends BaseRepository<Idol> {
       neptune_sign_name: string | null;
       pluto_sign_name: string | null;
     }>(query, params);
+
+    return results.map(result => {
+      // Procesar los grupos concatenados
+      const groupIds = result.group_ids ? result.group_ids.split(',').map(Number) : [];
+      const groupNames = result.group_names ? result.group_names.split(',') : [];
+      const groupActives = result.group_actives ? result.group_actives.split(',').map(Number).map(Boolean) : [];
+
+      const groups = groupIds.map((group_id, index) => ({
+        group_id,
+        group_name: groupNames[index],
+        is_active: groupActives[index]
+      }));
+
+      // Procesar el contenido multimedia concatenado
+      const mediaContentIds = result.media_content_ids ? result.media_content_ids.split(',').map(Number) : [];
+      const mediaContentTitles = result.media_content_titles ? result.media_content_titles.split(',') : [];
+      const mediaContentTypes = result.media_content_types ? result.media_content_types.split(',') as ('k-drama' | 'variety_show' | 'movie')[] : [];
+      const mediaContentRoles = result.media_content_roles ? result.media_content_roles.split(',') : [];
+
+      const mediaContent = mediaContentIds.map((media_content_id, index) => ({
+        media_content_id,
+        media_content_title: mediaContentTitles[index],
+        type: mediaContentTypes[index],
+        role: mediaContentRoles[index] || null
+      }));
+
+      // Eliminar las propiedades concatenadas del resultado
+      const { 
+        group_ids, 
+        group_names, 
+        group_actives, 
+        media_content_ids, 
+        media_content_titles, 
+        media_content_types, 
+        media_content_roles, 
+        ...idol 
+      } = result;
+
+      return {
+        ...idol,
+        groups,
+        media_content: mediaContent
+      };
+    });
+  }
+
+  async findAllWithRelations(): Promise<IdolWithRelations[]> {
+    const results = await this.db.getAllAsync<{
+      id: number;
+      name: string;
+      korean_name: string | null;
+      birth_date: string | null;
+      image_url: string | null;
+      sun_sign_id: number | null;
+      moon_sign_id: number | null;
+      rising_sign_id: number | null;
+      mercury_sign_id: number | null;
+      venus_sign_id: number | null;
+      mars_sign_id: number | null;
+      jupiter_sign_id: number | null;
+      saturn_sign_id: number | null;
+      uranus_sign_id: number | null;
+      neptune_sign_id: number | null;
+      pluto_sign_id: number | null;
+      group_ids: string;
+      group_names: string;
+      group_actives: string;
+      media_content_ids: string;
+      media_content_titles: string;
+      media_content_types: string;
+      media_content_roles: string;
+      sun_sign_name: string | null;
+      moon_sign_name: string | null;
+      rising_sign_name: string | null;
+      mercury_sign_name: string | null;
+      venus_sign_name: string | null;
+      mars_sign_name: string | null;
+      jupiter_sign_name: string | null;
+      saturn_sign_name: string | null;
+      uranus_sign_name: string | null;
+      neptune_sign_name: string | null;
+      pluto_sign_name: string | null;
+    }>(`
+      SELECT i.*, 
+        GROUP_CONCAT(ig.group_id) as group_ids,
+        GROUP_CONCAT(g.name) as group_names,
+        GROUP_CONCAT(ig.is_active) as group_actives,
+        GROUP_CONCAT(imc.media_content_id) as media_content_ids,
+        GROUP_CONCAT(mc.title) as media_content_titles,
+        GROUP_CONCAT(mc.type) as media_content_types,
+        GROUP_CONCAT(imc.role) as media_content_roles,
+        ws_sun.name as sun_sign_name,
+        ws_moon.name as moon_sign_name,
+        ws_rising.name as rising_sign_name,
+        ws_mercury.name as mercury_sign_name,
+        ws_venus.name as venus_sign_name,
+        ws_mars.name as mars_sign_name,
+        ws_jupiter.name as jupiter_sign_name,
+        ws_saturn.name as saturn_sign_name,
+        ws_uranus.name as uranus_sign_name,
+        ws_neptune.name as neptune_sign_name,
+        ws_pluto.name as pluto_sign_name
+      FROM ${this.tableName} i
+      LEFT JOIN idol_group ig ON i.id = ig.idol_id
+      LEFT JOIN "group" g ON ig.group_id = g.id
+      LEFT JOIN idol_media_content imc ON i.id = imc.idol_id
+      LEFT JOIN media_content mc ON imc.media_content_id = mc.id
+      LEFT JOIN western_zodiac_sign ws_sun ON i.sun_sign_id = ws_sun.id
+      LEFT JOIN western_zodiac_sign ws_moon ON i.moon_sign_id = ws_moon.id
+      LEFT JOIN western_zodiac_sign ws_rising ON i.rising_sign_id = ws_rising.id
+      LEFT JOIN western_zodiac_sign ws_mercury ON i.mercury_sign_id = ws_mercury.id
+      LEFT JOIN western_zodiac_sign ws_venus ON i.venus_sign_id = ws_venus.id
+      LEFT JOIN western_zodiac_sign ws_mars ON i.mars_sign_id = ws_mars.id
+      LEFT JOIN western_zodiac_sign ws_jupiter ON i.jupiter_sign_id = ws_jupiter.id
+      LEFT JOIN western_zodiac_sign ws_saturn ON i.saturn_sign_id = ws_saturn.id
+      LEFT JOIN western_zodiac_sign ws_uranus ON i.uranus_sign_id = ws_uranus.id
+      LEFT JOIN western_zodiac_sign ws_neptune ON i.neptune_sign_id = ws_neptune.id
+      LEFT JOIN western_zodiac_sign ws_pluto ON i.pluto_sign_id = ws_pluto.id
+      GROUP BY i.id
+    `);
 
     return results.map(result => {
       // Procesar los grupos concatenados

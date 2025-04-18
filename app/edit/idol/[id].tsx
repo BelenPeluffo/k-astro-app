@@ -28,6 +28,7 @@ export default function EditIdolPage() {
   const [name, setName] = useState("");
   const [koreanName, setKoreanName] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [selectedGroups, setSelectedGroups] = useState<Array<{
     group_id: number;
     is_active: boolean;
@@ -67,6 +68,7 @@ export default function EditIdolPage() {
           setName(idol.name);
           setKoreanName(idol.korean_name || '');
           setBirthDate(idol.birth_date || '');
+          setImageUrl(idol.image_url || '');
           setSelectedGroups(idol.groups.map(g => ({
             group_id: g.group_id,
             is_active: g.is_active
@@ -114,7 +116,8 @@ export default function EditIdolPage() {
         birthDate.trim() || null,
         selectedGroups,
         selectedSigns,
-        selectedMediaContent
+        selectedMediaContent,
+        imageUrl.trim() || null
       );
       Alert.alert(
         "Éxito",
@@ -182,6 +185,13 @@ export default function EditIdolPage() {
         placeholder="Fecha de Nacimiento (YYYY-MM-DD)"
         value={birthDate}
         onChangeText={setBirthDate}
+        editable={!isLoading}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="URL de la imagen (opcional)"
+        value={imageUrl}
+        onChangeText={setImageUrl}
         editable={!isLoading}
       />
 

@@ -1,40 +1,40 @@
 import { createContext, useEffect, useState, useContext } from "react";
 import { useSQLiteContext } from "expo-sqlite";
-import { Idol, Company, Group, IdolWithRelations, MediaContent, MediaContentWithRelations } from "@/database/interfaces";
+import { Idol, Company, Group, IdolWithRelations, MediaContent, MediaContentWithRelations, WesternZodiacSign } from "@/database/interfaces";
 import { IdolRepository } from "@/database/repository/Idol.repository";
 import { CompanyRepository } from "@/database/repository/Company.repository";
 import { GroupRepository } from "@/database/repository/Group.repository";
 import { MediaContentRepository } from "@/database/repository/MediaContent.repository";
+import { WesternZodiacSignRepository } from "@/database/repository/WesternZodiacSign.repository";
 
 export interface AppContextType {
   idols: IdolWithRelations[];
   companies: Company[];
   groups: Group[];
   mediaContent: MediaContentWithRelations[];
+  zodiacSigns: WesternZodiacSign[];
   createIdol: (
     name: string,
-    koreanName: string | null,
-    birthDate?: string | null,
-    groups?: Array<{
-      group_id: number;
-      is_active: boolean;
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
     }>,
-    signs?: Partial<
-      Pick<
-        Idol,
-        | "sun_sign_id"
-        | "moon_sign_id"
-        | "rising_sign_id"
-        | "mercury_sign_id"
-        | "venus_sign_id"
-        | "mars_sign_id"
-        | "jupiter_sign_id"
-        | "saturn_sign_id"
-        | "uranus_sign_id"
-        | "neptune_sign_id"
-        | "pluto_sign_id"
-      >
-    >
+    koreanName: string | null,
+    birthDate: string | null,
+    imageUrl: string | null,
+    signs?: {
+      sun_sign_id?: number | null;
+      moon_sign_id?: number | null;
+      rising_sign_id?: number | null;
+      mercury_sign_id?: number | null;
+      venus_sign_id?: number | null;
+      mars_sign_id?: number | null;
+      jupiter_sign_id?: number | null;
+      saturn_sign_id?: number | null;
+      uranus_sign_id?: number | null;
+      neptune_sign_id?: number | null;
+      pluto_sign_id?: number | null;
+    }
   ) => Promise<void>;
   createCompany: (name: string) => Promise<void>;
   createGroup: (name: string, companyId?: number) => Promise<void>;
@@ -65,6 +65,7 @@ export interface AppContextType {
     neptuneSign?: string;
     plutoSign?: string;
     mediaType?: 'k-drama' | 'variety_show' | 'movie';
+    mediaContentId?: number;
   }) => Promise<void>;
   deleteIdol: (id: number) => Promise<void>;
   deleteGroup: (id: number) => Promise<void>;
@@ -74,10 +75,10 @@ export interface AppContextType {
     id: number,
     name: string,
     koreanName: string | null,
-    birthDate?: string | null,
-    groups?: Array<{
-      group_id: number;
-      is_active: boolean;
+    birthDate: string | null,
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
     }>,
     signs?: Partial<
       Pick<
@@ -96,9 +97,10 @@ export interface AppContextType {
       >
     >,
     mediaContent?: Array<{
-      media_content_id: number;
-      role: string | null;
-    }>
+      media_content_id: number,
+      role: string | null
+    }>,
+    imageUrl?: string | null
   ) => Promise<void>;
 }
 
@@ -112,25 +114,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const companyRepository = new CompanyRepository(database);
   const groupRepository = new GroupRepository(database);
   const mediaContentRepository = new MediaContentRepository(database);
+  const zodiacSignRepository = new WesternZodiacSignRepository(database);
 
   const [idols, setIdols] = useState<IdolWithRelations[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [mediaContent, setMediaContent] = useState<MediaContentWithRelations[]>([]);
+  const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
 
   const refreshData = async () => {
     try {
-      const [idolsData, companiesData, groupsData, mediaContentData] = await Promise.all([
-        idolRepository.findByFilters({}),
+      const [idolsData, companiesData, groupsData, mediaContentData, zodiacSignsData] = await Promise.all([
+        idolRepository.findAllWithRelations(),
         companyRepository.findAll(),
         groupRepository.findAll(),
-        mediaContentRepository.findAllWithRelations()
+        mediaContentRepository.findAllWithRelations(),
+        zodiacSignRepository.findAll()
       ]);
 
       setIdols(idolsData);
       setCompanies(companiesData);
       setGroups(groupsData);
       setMediaContent(mediaContentData);
+      setZodiacSigns(zodiacSignsData);
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
@@ -142,31 +148,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createIdol = async (
     name: string,
-    koreanName: string | null,
-    birthDate?: string | null,
-    groups?: Array<{
-      group_id: number;
-      is_active: boolean;
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
     }>,
-    signs?: Partial<
-      Pick<
-        Idol,
-        | "sun_sign_id"
-        | "moon_sign_id"
-        | "rising_sign_id"
-        | "mercury_sign_id"
-        | "venus_sign_id"
-        | "mars_sign_id"
-        | "jupiter_sign_id"
-        | "saturn_sign_id"
-        | "uranus_sign_id"
-        | "neptune_sign_id"
-        | "pluto_sign_id"
-      >
-    >
+    koreanName: string | null,
+    birthDate: string | null,
+    imageUrl: string | null,
+    signs?: {
+      sun_sign_id?: number | null;
+      moon_sign_id?: number | null;
+      rising_sign_id?: number | null;
+      mercury_sign_id?: number | null;
+      venus_sign_id?: number | null;
+      mars_sign_id?: number | null;
+      jupiter_sign_id?: number | null;
+      saturn_sign_id?: number | null;
+      uranus_sign_id?: number | null;
+      neptune_sign_id?: number | null;
+      pluto_sign_id?: number | null;
+    }
   ) => {
     try {
-      await idolRepository.create(name, groups, koreanName, birthDate, signs);
+      await idolRepository.create(name, groups, koreanName, birthDate, imageUrl, signs);
       await refreshData();
     } catch (error) {
       console.error('Error creating idol:', error);
@@ -269,6 +273,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     neptuneSign?: string;
     plutoSign?: string;
     mediaType?: 'k-drama' | 'variety_show' | 'movie';
+    mediaContentId?: number;
   }) => {
     try {
       const filteredIdols = await idolRepository.findByFilters(filters);
@@ -283,10 +288,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     id: number,
     name: string,
     koreanName: string | null,
-    birthDate?: string | null,
-    groups?: Array<{
-      group_id: number;
-      is_active: boolean;
+    birthDate: string | null,
+    groups: Array<{
+      group_id: number,
+      is_active: boolean
     }>,
     signs?: Partial<
       Pick<
@@ -305,16 +310,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       >
     >,
     mediaContent?: Array<{
-      media_content_id: number;
-      role: string | null;
-    }>
+      media_content_id: number,
+      role: string | null
+    }>,
+    imageUrl?: string | null
   ) => {
     await idolRepository.update(
       id,
       name,
-      groups ?? [],
-      koreanName ?? null,
-      birthDate ?? null,
+      groups,
+      koreanName,
+      birthDate,
+      imageUrl ?? null,
       signs,
       mediaContent ?? []
     );
@@ -328,6 +335,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         companies,
         groups,
         mediaContent,
+        zodiacSigns,
         createIdol,
         createCompany,
         createGroup,
