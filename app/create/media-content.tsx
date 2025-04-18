@@ -33,6 +33,8 @@ export default function CreateMediaContentPage() {
   const [description, setDescription] = useState("");
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [existingMediaContent, setExistingMediaContent] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<Array<{ id: number; title: string; type: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     if (idolId) {
@@ -45,6 +47,29 @@ export default function CreateMediaContentPage() {
       }
     }
   }, [idolId, idols]);
+
+  const handleTitleChange = async (text: string) => {
+    setTitle(text);
+    if (text.length >= 2) {
+      const repository = new MediaContentRepository(database);
+      const results = await repository.findByName(text);
+      setSuggestions(results.map(content => ({
+        id: content.id,
+        title: content.title,
+        type: content.type
+      })));
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionSelect = (suggestion: { id: number; title: string; type: string }) => {
+    setTitle(suggestion.title);
+    setType(suggestion.type as 'k-drama' | 'variety_show' | 'movie');
+    setShowSuggestions(false);
+  };
 
   const handleCreate = async () => {
     if (!title) {
@@ -81,12 +106,34 @@ export default function CreateMediaContentPage() {
     <ScrollView style={styles.container}>
       <View style={styles.form}>
         <Text style={styles.label}>Título</Text>
-        <TextInput
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Ingrese el título"
-        />
+        <View style={styles.titleContainer}>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={handleTitleChange}
+            placeholder="Ingrese el título"
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onFocus={() => title.length >= 2 && setShowSuggestions(true)}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <View style={styles.suggestionsContainer}>
+              {suggestions.map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion.id}
+                  style={styles.suggestionItem}
+                  onPress={() => handleSuggestionSelect(suggestion)}
+                >
+                  <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
+                  <Text style={styles.suggestionType}>
+                    {suggestion.type === 'k-drama' ? 'K-Drama' :
+                     suggestion.type === 'variety_show' ? 'Programa de Variedades' :
+                     'Película'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
 
         <Text style={styles.label}>Tipo</Text>
         <Picker
@@ -210,11 +257,14 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     fontWeight: "bold",
   },
+  titleContainer: {
+    position: 'relative',
+    marginBottom: 15,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
     padding: 10,
-    marginBottom: 15,
     borderRadius: 5,
   },
   textArea: {
@@ -299,5 +349,30 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    zIndex: 1000,
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  suggestionType: {
+    fontSize: 14,
+    color: '#666',
   },
 }); 
