@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useAppContext } from '@/contexts/App.provider';
+import { useAppContext, AppContextType } from '@/contexts/App.provider';
 import { useSQLiteContext } from 'expo-sqlite';
 import { WesternZodiacSignRepository } from '@/database/repository/WesternZodiacSign.repository';
 import { Picker } from '@react-native-picker/picker';
@@ -13,11 +13,10 @@ export const FiltersScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const database = useSQLiteContext();
-  const { filterIdols } = useAppContext();
+  const { filterIdols } = useAppContext() as AppContextType;
   const { applyFilters } = useFiltersState();
   const [zodiacSigns, setZodiacSigns] = useState<WesternZodiacSign[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
   
   const [filters, setFilters] = useState({
     idolName: '',
@@ -46,39 +45,20 @@ export const FiltersScreen = () => {
   }, [database]);
 
   useEffect(() => {
-    if (initialLoad && params) {
-      const newFilters = { ...filters };
-      Object.keys(params).forEach(key => {
-        if (key in newFilters) {
-          newFilters[key] = params[key] as string;
-        }
-      });
+    const newFilters = { ...filters };
+    let hasChanges = false;
+    
+    Object.keys(params).forEach(key => {
+      if (key in newFilters && params[key] !== newFilters[key as keyof typeof newFilters]) {
+        newFilters[key as keyof typeof newFilters] = params[key] as string;
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
       setFilters(newFilters);
-      setInitialLoad(false);
     }
-  }, [params, initialLoad]);
-
-  useEffect(() => {
-    if (!initialLoad) {
-      const applyInitialFilters = async () => {
-        setIsLoading(true);
-        try {
-          const cleanFilters = Object.fromEntries(
-            Object.entries(filters).filter(([_, value]) => value !== '')
-          );
-          applyFilters(cleanFilters);
-          await filterIdols(cleanFilters);
-          router.replace('/');
-        } catch (error) {
-          console.error('Error al aplicar filtros:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      applyInitialFilters();
-    }
-  }, [filters, initialLoad]);
+  }, [params]);
 
   const planetLabels = {
     sunSign: "Sol",
@@ -99,9 +79,11 @@ export const FiltersScreen = () => {
     try {
       const cleanFilters = Object.fromEntries(
         Object.entries(filters).filter(([_, value]) => value !== '')
-      );
+      ) as typeof filters;
+      
       await filterIdols(cleanFilters);
       applyFilters(cleanFilters);
+      router.replace('/');
     } catch (error) {
       console.error('Error al aplicar filtros:', error);
     } finally {
@@ -141,7 +123,7 @@ export const FiltersScreen = () => {
           <View key={key} style={styles.signSelector}>
             <Text style={styles.planetLabel}>{label}</Text>
             <Picker
-              selectedValue={filters[key]}
+              selectedValue={filters[key as keyof typeof filters]}
               onValueChange={(value) => 
                 setFilters(prev => ({...prev, [key]: value}))
               }

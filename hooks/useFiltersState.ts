@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppContext, AppContextType } from '@/contexts/App.provider';
 
@@ -50,16 +50,8 @@ export const useFiltersState = () => {
   }
   
   const { filterIdols, refreshData } = context;
-  const [filters, setFilters] = useState<FilterParams>({});
 
-  useEffect(() => {
-    const cleanParams = Object.fromEntries(
-      Object.entries(params).filter(([_, value]) => value !== '')
-    ) as FilterParams;
-    setFilters(cleanParams);
-  }, [params]);
-
-  const filterValidParams = (params: Record<string, any>): FilterParams => {
+  const activeFilters = useMemo(() => {
     return Object.entries(params)
       .filter(([key, value]) => 
         filterLabels.hasOwnProperty(key) && 
@@ -70,8 +62,8 @@ export const useFiltersState = () => {
       .reduce((acc, [key, value]) => ({
         ...acc,
         [key]: value
-      }), {});
-  };
+      }), {} as FilterParams);
+  }, [params]);
 
   const clearFilters = async () => {
     await refreshData();
@@ -90,9 +82,7 @@ export const useFiltersState = () => {
   };
 
   return {
-    filters,
-    setFilters,
-    activeFilters: filterValidParams(params),
+    activeFilters,
     clearFilters,
     applyFilters,
     filterLabels
