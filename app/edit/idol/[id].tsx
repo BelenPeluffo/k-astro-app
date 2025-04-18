@@ -195,7 +195,9 @@ export default function EditIdolPage() {
               if (isSelected) {
                 setSelectedGroups(selectedGroups.filter(g => g.group_id !== group.id));
               } else {
-                setSelectedGroups([...selectedGroups, { group_id: group.id, is_active: true }]);
+                if (!selectedGroups.some(g => g.group_id === group.id)) {
+                  setSelectedGroups([...selectedGroups, { group_id: group.id, is_active: true }]);
+                }
               }
             }}
           >
@@ -273,10 +275,12 @@ export default function EditIdolPage() {
                 };
                 setSelectedMediaContent(newSelectedContent);
               } else {
-                setSelectedMediaContent([
-                  ...selectedMediaContent,
-                  { media_content_id: content.id, role: role || null },
-                ]);
+                if (!selectedMediaContent.some(mc => mc.media_content_id === content.id)) {
+                  setSelectedMediaContent([
+                    ...selectedMediaContent,
+                    { media_content_id: content.id, role: role || null },
+                  ]);
+                }
               }
             }}
           />

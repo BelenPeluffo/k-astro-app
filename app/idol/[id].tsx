@@ -119,8 +119,8 @@ export default function IdolDetailsPage() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Grupos</Text>
-          {idol.groups.map((group) => (
-            <View key={group.group_id} style={styles.groupItem}>
+          {idol.groups.map((group, index) => (
+            <View key={`group-${group.group_id}-${index}`} style={styles.groupItem}>
               <Text style={styles.groupName}>{group.group_name}</Text>
               <Text style={styles.groupStatus}>
                 {group.is_active ? 'Activo' : 'Inactivo'}
@@ -137,9 +137,9 @@ export default function IdolDetailsPage() {
           >
             <Text style={styles.addButtonText}>+ Agregar Contenido</Text>
           </TouchableOpacity>
-          {idol.media_content.map((content) => (
+          {idol.media_content.map((content, index) => (
             <TouchableOpacity
-              key={content.media_content_id}
+              key={`media-${content.media_content_id}-${index}`}
               style={styles.mediaContentItem}
               onPress={() => router.push(`/media-content/${content.media_content_id}`)}
             >
