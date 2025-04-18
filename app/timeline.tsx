@@ -1,14 +1,32 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { useAppContext } from '@/contexts/App.provider';
 import { useEffect, useState } from 'react';
 import { IdolWithRelations } from '@/database/interfaces';
 import { useRouter } from 'expo-router';
+
+// Zodiac sign color mapping
+const zodiacColors: Record<string, string> = {
+  'Aries': '#FF5252',      // Rojo brillante
+  'Taurus': '#4CAF50',     // Verde
+  'Gemini': '#FFC107',     // Amarillo
+  'Cancer': '#9C27B0',     // Púrpura
+  'Leo': '#FF9800',        // Naranja
+  'Virgo': '#00BCD4',      // Cian
+  'Libra': '#E91E63',      // Rosa
+  'Scorpio': '#3F51B5',    // Índigo
+  'Sagittarius': '#FF5722', // Naranja oscuro
+  'Capricorn': '#795548',   // Marrón
+  'Aquarius': '#2196F3',    // Azul
+  'Pisces': '#009688',      // Verde azulado
+};
 
 export default function TimelinePage() {
   const context = useAppContext();
   const [sortedIdols, setSortedIdols] = useState<IdolWithRelations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const [selectedIdol, setSelectedIdol] = useState<IdolWithRelations | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
     if (!context) {
@@ -34,6 +52,11 @@ export default function TimelinePage() {
     return `${day}/${month}/${year}`;
   };
 
+  const getZodiacColor = (signName: string | null) => {
+    if (!signName) return '#007AFF'; // Default color if no sign
+    return zodiacColors[signName] || '#007AFF';
+  };
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -53,7 +76,13 @@ export default function TimelinePage() {
               style={styles.timelineItem}
               onPress={() => router.push(`/idol/${idol.id}`)}
             >
-              <View style={styles.timelineDot} />
+              <TouchableOpacity 
+                style={[styles.timelineDot, { backgroundColor: getZodiacColor(idol.sun_sign_name) }]}
+                onPress={() => {
+                  setSelectedIdol(idol);
+                  setShowTooltip(true);
+                }}
+              />
               <View style={styles.timelineContent}>
                 <Text style={styles.idolName}>{idol.name}</Text>
                 <Text style={styles.birthDate}>
@@ -69,6 +98,26 @@ export default function TimelinePage() {
           <Text style={styles.noData}>No hay idols con fecha de nacimiento registrada</Text>
         )}
       </ScrollView>
+
+      <Modal
+        visible={showTooltip}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTooltip(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTooltip(false)}
+        >
+          <View style={styles.tooltipContainer}>
+            <Text style={styles.tooltipTitle}>Signo Zodiacal</Text>
+            <Text style={styles.tooltipText}>
+              {selectedIdol?.sun_sign_name || 'No disponible'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -97,7 +146,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#007AFF',
     marginRight: 16,
     marginTop: 8,
   },
@@ -127,5 +175,28 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: '#666',
     fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tooltipContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    elevation: 5,
+    minWidth: 200,
+    alignItems: 'center',
+  },
+  tooltipTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  tooltipText: {
+    fontSize: 16,
+    color: '#666',
   },
 }); 
