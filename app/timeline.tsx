@@ -89,7 +89,7 @@ export default function TimelinePage() {
                   {formatDate(idol.birth_date)}
                 </Text>
                 <Text style={styles.groups}>
-                  {idol.groups?.map(g => g.group_name).join(', ') || 'Sin grupos'}
+                  {idol.groups ? [...new Set(idol.groups.map(g => g.group_name))].join(', ') : 'Sin grupos'}
                 </Text>
               </View>
             </TouchableOpacity>
