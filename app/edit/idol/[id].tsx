@@ -262,25 +262,26 @@ export default function EditIdolPage() {
           <TextInput
             style={styles.roleInput}
             placeholder="Rol"
-            value={content.role || ''}
+            value={selectedMediaContent.find(mc => mc.media_content_id === content.id)?.role || ''}
             onChangeText={(role) => {
               const existingIndex = selectedMediaContent.findIndex(
                 (s) => s.media_content_id === content.id
               );
+              
               if (existingIndex >= 0) {
+                // Si ya existe, actualizamos el rol
                 const newSelectedContent = [...selectedMediaContent];
                 newSelectedContent[existingIndex] = {
-                  media_content_id: content.id,
+                  ...newSelectedContent[existingIndex],
                   role: role || null,
                 };
                 setSelectedMediaContent(newSelectedContent);
               } else {
-                if (!selectedMediaContent.some(mc => mc.media_content_id === content.id)) {
-                  setSelectedMediaContent([
-                    ...selectedMediaContent,
-                    { media_content_id: content.id, role: role || null },
-                  ]);
-                }
+                // Si no existe, lo agregamos
+                setSelectedMediaContent([
+                  ...selectedMediaContent,
+                  { media_content_id: content.id, role: role || null },
+                ]);
               }
             }}
           />
